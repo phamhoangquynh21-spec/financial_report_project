@@ -1,0 +1,58 @@
+/// Industry benchmarks: Damodaran, Margins by Sector (US), data as of January 2026, pages.stern.nyu.edu/~adamodar/New_Home_Page/datafile/margin.html. Opex Ratio = SG&A/Sales + R&D/Sales. EBIT Margin = Pre-tax Unadjusted Operating Margin.
+table dim_benchmark
+	lineageTag: 1b04456f-205e-4eb8-8f10-3b03687493b1
+
+	column 'Business Line ID'
+		lineageTag: d19d4de1-0288-41f5-a7de-d7738597cf1a
+		isNameInferred
+		sourceColumn: [Business Line ID]
+
+	column 'Benchmark Industry'
+		lineageTag: ec9ec873-fdd7-4232-b2f0-3c833ebde571
+		isNameInferred
+		sourceColumn: [Benchmark Industry]
+
+	column Firms
+		lineageTag: 17e3b0b0-d2b0-4948-be9c-497a7c919551
+		isNameInferred
+		sourceColumn: [Firms]
+
+	column 'Bm Gross Margin'
+		lineageTag: e270a784-ba3c-41ba-9d7b-0e11a90b406d
+		isNameInferred
+		sourceColumn: [Bm Gross Margin]
+
+	column 'Bm Opex Ratio'
+		lineageTag: ca27780f-13ed-4daa-95b1-8dbc47220e47
+		isNameInferred
+		sourceColumn: [Bm Opex Ratio]
+
+	column 'Bm EBIT Margin'
+		lineageTag: 2f717364-df83-4438-9b78-5bf956c1c497
+		isNameInferred
+		sourceColumn: [Bm EBIT Margin]
+
+	column 'Bm Net Margin'
+		lineageTag: 2583ffea-3685-4bf0-9597-cf43715f0f2f
+		isNameInferred
+		sourceColumn: [Bm Net Margin]
+
+	partition dim_benchmark = calculated
+		mode: import
+		source =
+				DATATABLE (
+				    "Business Line ID", INTEGER,
+				    "Benchmark Industry", STRING,
+				    "Firms", INTEGER,
+				    "Bm Gross Margin", DOUBLE,
+				    "Bm Opex Ratio", DOUBLE,
+				    "Bm EBIT Margin", DOUBLE,
+				    "Bm Net Margin", DOUBLE,
+				    {
+				        { 1, "Food Processing", 78, 0.2323, 0.1272, 0.1063, 0.0282 },
+				        { 2, "Recreation", 49, 0.3979, 0.2668, 0.0969, -0.0472 },
+				        { 3, "Apparel", 35, 0.5688, 0.4763, 0.0911, 0.0385 },
+				        { 0, "Total Market (without financials)", 4822, 0.3439, 0.1811, 0.1314, 0.0856 }
+				    }
+				)
+

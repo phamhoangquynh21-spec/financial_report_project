@@ -1,0 +1,21 @@
+relationship 306c22ba-6ad4-434a-8758-523d032a3e43
+	joinOnDateBehavior: datePartOnly
+	fromColumn: dim_calendar.Date
+	toColumn: LocalDateTable_28e7c4c6-afdc-430f-b0df-747610d48f72.Date
+
+relationship 8c2aba85-d4a4-660c-85e8-903b6d14cb0c
+	fromColumn: fact_financial.Date
+	toColumn: dim_calendar.Date
+
+relationship 42394b58-dd0d-b16f-cdb5-2513c108558a
+	fromColumn: fact_financial.'Group ID'
+	toColumn: dim_group.'Group ID'
+
+relationship f65ab5e2-8b8a-2ef4-f676-b591e00a51f6
+	fromColumn: fact_financial.'Subgroup ID'
+	toColumn: dim_subgroup.'Subgroup ID'
+
+relationship 4a973a2f-25e3-ebfa-4962-18f908586541
+	fromColumn: fact_financial.'Business Line ID'
+	toColumn: dim_business_line.'Business Line ID'
+

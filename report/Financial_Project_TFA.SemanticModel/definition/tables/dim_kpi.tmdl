@@ -1,0 +1,42 @@
+table dim_kpi
+	lineageTag: 74670274-4089-4b7e-b766-b57dca4435be
+
+	column Name
+		dataType: string
+		lineageTag: 8a8e72cb-0f33-4387-a78e-08c771772fe5
+		summarizeBy: none
+		sourceColumn: Name
+		sortByColumn: Order
+
+		annotation SummarizationSetBy = Automatic
+
+	column Order
+		dataType: int64
+		formatString: 0
+		lineageTag: 524b1b64-174d-4632-86b6-17d4c57e7407
+		summarizeBy: none
+		sourceColumn: Order
+
+		annotation SummarizationSetBy = Automatic
+
+	column Legend
+		dataType: string
+		lineageTag: 701a028e-ffbe-460c-95f8-e2e2e1780cf5
+		summarizeBy: none
+		sourceColumn: Legend
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_kpi = m
+		mode: import
+		source =
+				let
+				  Source = Csv.Document(File.Contents("C:\Users\User\Documents\Financial Data\KPI.csv"), [Delimiter = ",", Columns = 3, Encoding = 65001, QuoteStyle = QuoteStyle.None]),
+				  #"Promoted headers" = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+				  #"Changed column type" = Table.TransformColumnTypes(#"Promoted headers", {{"Name", type text}, {"Order", Int64.Type}, {"Leyend", type text}}, "en-US"),
+				  #"Renamed Legend" = Table.RenameColumns(#"Changed column type", {{"Leyend", "Legend"}})
+				in
+				  #"Renamed Legend"
+
+	annotation PBI_ResultType = Table
+

@@ -1,0 +1,74 @@
+table fact_financial
+	lineageTag: 544ff309-87a9-4391-997d-028a026cc89f
+
+	column Date
+		dataType: dateTime
+		formatString: dd/mm/yyyy
+		lineageTag: cc111b48-4730-4de8-846d-a04014710400
+		summarizeBy: none
+		sourceColumn: Date
+
+		annotation SummarizationSetBy = Automatic
+
+	column Amount
+		dataType: decimal
+		formatString: \$#,0.###############;-\$#,0.###############;\$#,0.###############
+		lineageTag: ffad8fc2-7909-47a4-b168-640598eeaae8
+		summarizeBy: sum
+		sourceColumn: Amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-AU"}
+
+	column 'Business Line ID'
+		dataType: int64
+		formatString: 0
+		lineageTag: d21a74ff-36de-4ce8-aed1-ca9b7ee95ee0
+		summarizeBy: none
+		sourceColumn: Business Line ID
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Subgroup ID'
+		dataType: int64
+		formatString: 0
+		lineageTag: 57a7a847-dc86-455a-a979-aac22ac785de
+		summarizeBy: none
+		sourceColumn: Subgroup ID
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Group ID'
+		dataType: int64
+		formatString: 0
+		lineageTag: 63867ad6-7b01-4deb-9a89-4854c0d428d7
+		summarizeBy: none
+		sourceColumn: Group ID
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Revenue or expense'
+		dataType: string
+		lineageTag: e2735c2c-1422-47eb-bb97-ee216b56e43e
+		summarizeBy: none
+		sourceColumn: Revenue or expense
+
+		annotation SummarizationSetBy = Automatic
+
+	partition fact_financial = m
+		mode: import
+		source =
+				let
+				  Source = Csv.Document(File.Contents("C:\Users\User\Documents\Financial Data\Fact.csv"), [Delimiter = ",", Columns = 6, Encoding = 65001, QuoteStyle = QuoteStyle.None]),
+				  #"Promoted headers" = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+				  #"Changed column type" = Table.TransformColumnTypes(#"Promoted headers", {{"Date", type datetime}, {"Amount, $", Currency.Type}, {"Business Line ID", Int64.Type}, {"Subgroup ID", Int64.Type}, {"Group ID", Int64.Type}, {"Revenue or expense", type text}}, "en-US"),
+				  #"Renamed amount" = Table.RenameColumns(#"Changed column type", {{"Amount, $", "Amount"}}),
+				  // Subgroup 9 'Other' is posted under both Opex (2) and COGS (3); give the COGS rows their own ID 16
+				  #"Split Other subgroup" = Table.ReplaceValue(#"Renamed amount", each [Subgroup ID], each if [Subgroup ID] = 9 and [Group ID] = 3 then 16 else [Subgroup ID], Replacer.ReplaceValue, {"Subgroup ID"}),
+				  #"Typed" = Table.TransformColumnTypes(#"Split Other subgroup", {{"Subgroup ID", Int64.Type}})
+				in
+				  #"Typed"
+
+	annotation PBI_ResultType = Table
+

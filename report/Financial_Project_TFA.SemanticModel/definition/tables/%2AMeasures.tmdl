@@ -1,0 +1,1348 @@
+/// Home table for all report measures
+table *Measures
+	lineageTag: 2ce040de-8b56-4dc9-9256-fe985e7a9dd2
+
+	/// Sum of revenue postings (Group 1)
+	measure 'Total Revenue' =
+			// Revenue is stored positive
+			CALCULATE ( SUM ( fact_financial[Amount] ), fact_financial[Group ID] = 1 )
+		formatString: \$#,0
+		displayFolder: 01 Base
+		lineageTag: 7342fbab-255b-4d85-a3b6-d1fa5f4230fd
+
+	/// Cost of goods sold as a positive number (Group 3)
+	measure 'Total COGS' =
+			// Expenses are stored negative, flip once here
+			- CALCULATE ( SUM ( fact_financial[Amount] ), fact_financial[Group ID] = 3 )
+		formatString: \$#,0
+		displayFolder: 01 Base
+		lineageTag: 10baa3e3-cbfc-4980-ba14-94049db76f46
+
+	/// Operating expenses as a positive number (Group 2)
+	measure 'Total Opex' = - CALCULATE ( SUM ( fact_financial[Amount] ), fact_financial[Group ID] = 2 )
+		formatString: \$#,0
+		displayFolder: 01 Base
+		lineageTag: 3b9827c4-cc51-4ef0-b70e-eee66e420ae0
+
+	/// Interest and tax as a positive number (Group 4)
+	measure 'Total Interest & Tax' = - CALCULATE ( SUM ( fact_financial[Amount] ), fact_financial[Group ID] = 4 )
+		formatString: \$#,0
+		displayFolder: 01 Base
+		lineageTag: e3397641-76c6-4536-aa19-a87ab38e6f32
+
+	/// COGS + Opex + Interest & Tax
+	measure 'Total Cost' = [Total COGS] + [Total Opex] + [Total Interest & Tax]
+		formatString: \$#,0
+		displayFolder: 01 Base
+		lineageTag: edac77e4-cb10-4c9e-a818-6c3c99d4a1be
+
+	/// Absolute amount for cost breakdown visuals by subgroup
+	measure 'Amount (Abs)' = ABS ( SUM ( fact_financial[Amount] ) )
+		formatString: \$#,0
+		displayFolder: 01 Base
+		lineageTag: c65ef167-ce6c-4fac-9989-e6e1de139dfa
+
+	/// Revenue - COGS
+	measure 'Gross Profit' = [Total Revenue] - [Total COGS]
+		formatString: \$#,0;-\$#,0
+		displayFolder: 02 P&L
+		lineageTag: ac044340-382b-4710-99da-524507fea153
+
+	/// Gross Profit - Opex
+	measure EBIT = [Gross Profit] - [Total Opex]
+		formatString: \$#,0;-\$#,0
+		displayFolder: 02 P&L
+		lineageTag: d7ee952a-3aa6-4d10-8dc2-d4613096e890
+
+	/// EBIT - Interest & Tax
+	measure 'Net Profit' = [EBIT] - [Total Interest & Tax]
+		formatString: \$#,0;-\$#,0
+		displayFolder: 02 P&L
+		lineageTag: 632b7453-fd72-4285-825d-bc65de16903d
+
+	/// Income-statement line value driven by dim_headline; costs shown negative
+	measure 'P&L Value' =
+			// Picks the P&L line from dim_headline; subtotal lines blank out when a subgroup is in scope
+			VAR _line = SELECTEDVALUE ( dim_headline[Order] )
+			VAR _isSubtotal = SELECTEDVALUE ( dim_headline[Detail] ) = 0
+			VAR _value =
+			    SWITCH (
+			        _line,
+			        1, [Total Revenue],
+			        2, - [Total COGS],
+			        3, [Gross Profit],
+			        4, - [Total Opex],
+			        5, [EBIT],
+			        6, - [Total Interest & Tax],
+			        7, [Net Profit]
+			    )
+			RETURN
+			    IF ( ISINSCOPE ( dim_subgroup[Subgroup] ) && _isSubtotal, BLANK (), _value )
+		formatString: \$#,0,.0"K";(\$#,0,.0"K")
+		displayFolder: 02 P&L
+		lineageTag: c90ddb35-3818-45bd-92d6-0e1ce0d51270
+
+	/// P&L line as % of revenue (subgroup filter removed from denominator)
+	measure 'P&L % of Revenue' = DIVIDE ( [P&L Value], CALCULATE ( [Total Revenue], REMOVEFILTERS ( dim_subgroup ) ) )
+		formatString: 0.0%;-0.0%
+		displayFolder: 02 P&L
+		lineageTag: 8c22f1a5-fbb8-4bbf-bf4e-701b19d3cba7
+
+	/// Gross Profit / Revenue
+	measure 'Gross Profit Margin %' = DIVIDE ( [Gross Profit], [Total Revenue] )
+		formatString: 0.00%;-0.00%;0.00%
+		displayFolder: 03 Ratios
+		lineageTag: 062fc6d8-8274-4ef3-86ed-98915a497246
+
+	/// COGS / Revenue
+	measure 'COGS Ratio %' = DIVIDE ( [Total COGS], [Total Revenue] )
+		formatString: 0.0%
+		displayFolder: 03 Ratios
+		lineageTag: a879572b-a80c-4fc2-a456-6638a4f0e350
+
+	/// Opex / Revenue
+	measure 'Opex Ratio %' = DIVIDE ( [Total Opex], [Total Revenue] )
+		formatString: 0.00%;-0.00%;0.00%
+		displayFolder: 03 Ratios
+		lineageTag: ca100dfe-1a32-40e8-92ed-f2155cee549b
+
+	/// EBIT / Revenue
+	measure 'EBIT Margin %' = DIVIDE ( [EBIT], [Total Revenue] )
+		formatString: 0.00%;-0.00%;0.00%
+		displayFolder: 03 Ratios
+		lineageTag: b7cdf893-8fa9-4f68-81af-112e71e11239
+
+	/// Net Profit / Revenue
+	measure 'Net Profit Margin %' = DIVIDE ( [Net Profit], [Total Revenue] )
+		formatString: 0.00%;-0.00%;0.00%
+		displayFolder: 03 Ratios
+		lineageTag: 0bee17f6-bc8f-4454-bc74-8d998e796cf3
+
+	/// Interest & Tax / Revenue
+	measure 'Interest & Tax % of Revenue' = DIVIDE ( [Total Interest & Tax], [Total Revenue] )
+		formatString: 0.0%
+		displayFolder: 03 Ratios
+		lineageTag: 149c59c2-8c48-4048-9bee-ff1212e99a56
+
+	/// EBIT / (Interest + Tax). Interest and tax are combined in the source, so this is not a pure interest coverage ratio
+	measure 'EBIT Cover (x)' = DIVIDE ( [EBIT], [Total Interest & Tax] )
+		formatString: 0.00"x";-0.00"x"
+		displayFolder: 03 Ratios
+		lineageTag: 158356aa-63cd-4e95-924d-a7f11d4b26a2
+
+	/// Value of the KPI chosen in dim_kpi (defaults to Opex)
+	measure 'KPI Selected Value' =
+			SWITCH (
+			    SELECTEDVALUE ( dim_kpi[Order], 1 ),
+			    1, [Total Opex],
+			    2, [Gross Profit],
+			    3, [EBIT],
+			    4, [Total Interest & Tax],
+			    5, [Net Profit]
+			)
+		formatString: \$#,0;-\$#,0
+		displayFolder: 03 Ratios
+		lineageTag: 66f70ac3-498f-496b-b1f8-86050fe1e45f
+
+	/// Ratio paired with the KPI chosen in dim_kpi; format switches to x for cover
+	measure 'KPI Selected Ratio' =
+			SWITCH (
+			    SELECTEDVALUE ( dim_kpi[Order], 1 ),
+			    1, [Opex Ratio %],
+			    2, [Gross Profit Margin %],
+			    3, [EBIT Margin %],
+			    4, [EBIT Cover (x)],
+			    5, [Net Profit Margin %]
+			)
+		displayFolder: 03 Ratios
+		lineageTag: 20b4090c-1072-4546-bdf6-e7f356938755
+
+		formatStringDefinition = IF ( SELECTEDVALUE ( dim_kpi[Order], 1 ) = 4, "0.00x", "0.0%" )
+
+	/// Ratio (as % of revenue) for the item chosen in dim_ratios
+	measure 'Ratio Selected Value' =
+			SWITCH (
+			    SELECTEDVALUE ( dim_ratios[Order], 1 ),
+			    1, [Opex Ratio %],
+			    2, [Gross Profit Margin %],
+			    3, [EBIT Margin %],
+			    4, [Interest & Tax % of Revenue],
+			    5, [Net Profit Margin %]
+			)
+		formatString: 0.0%;-0.0%
+		displayFolder: 03 Ratios
+		lineageTag: ada127de-fc2a-498b-b813-d8009d1ce701
+
+	/// Revenue in the previous month
+	measure 'Revenue PM' = CALCULATE ( [Total Revenue], DATEADD ( dim_calendar[Date], -1, MONTH ) )
+		formatString: \$#,0
+		displayFolder: 04 Time
+		lineageTag: 6f587349-ba74-406f-9189-4e1f912c344f
+
+	/// Month-over-month revenue change
+	measure 'Revenue MoM %' =
+			// Only meaningful for a single month
+			VAR _pm = [Revenue PM]
+			RETURN IF ( HASONEVALUE ( dim_calendar[Month] ) && NOT ISBLANK ( _pm ), DIVIDE ( [Total Revenue] - _pm, _pm ) )
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: 04 Time
+		lineageTag: 6c385c24-68b8-446d-8fd7-94bb6420ca8b
+
+	/// Net profit in the previous month
+	measure 'Net Profit PM' = CALCULATE ( [Net Profit], DATEADD ( dim_calendar[Date], -1, MONTH ) )
+		formatString: \$#,0;-\$#,0
+		displayFolder: 04 Time
+		lineageTag: 302a1f73-de23-4006-ae60-18dea0b0606d
+
+	/// Month-over-month net profit change (vs absolute prior value)
+	measure 'Net Profit MoM %' =
+			// Only meaningful for a single month
+			VAR _pm = [Net Profit PM]
+			RETURN IF ( HASONEVALUE ( dim_calendar[Month] ) && NOT ISBLANK ( _pm ), DIVIDE ( [Net Profit] - _pm, ABS ( _pm ) ) )
+		formatString: 0.00%;-0.00%;0.00%
+		displayFolder: 04 Time
+		lineageTag: 3135ace4-9d76-4497-ae72-040175c0f166
+
+	/// Opex in the previous month
+	measure 'Opex PM' = CALCULATE ( [Total Opex], DATEADD ( dim_calendar[Date], -1, MONTH ) )
+		formatString: \$#,0
+		displayFolder: 04 Time
+		lineageTag: 920f70cd-d62b-4ba0-8481-d74b81d67230
+
+	/// Month-over-month opex change
+	measure 'Opex MoM %' =
+			// Only meaningful for a single month
+			VAR _pm = [Opex PM]
+			RETURN IF ( HASONEVALUE ( dim_calendar[Month] ) && NOT ISBLANK ( _pm ), DIVIDE ( [Total Opex] - _pm, _pm ) )
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: 04 Time
+		lineageTag: cdcef0f2-8f3a-4380-8c2f-7252c7050733
+
+	/// Year-to-date revenue
+	measure 'Revenue YTD' = TOTALYTD ( [Total Revenue], dim_calendar[Date] )
+		formatString: \$#,0
+		displayFolder: 04 Time
+		lineageTag: 29795e20-e710-42ac-aac3-8ebe9b5ed315
+
+	/// Year-to-date net profit
+	measure 'Net Profit YTD' = TOTALYTD ( [Net Profit], dim_calendar[Date] )
+		formatString: \$#,0;-\$#,0
+		displayFolder: 04 Time
+		lineageTag: 32a6e0ba-8d8c-4471-aa90-d756a799daa7
+
+	/// Last month-end posting date in the current selection
+	measure 'Latest Month Date' = MAX ( fact_financial[Date] )
+		formatString: mmm yyyy
+		displayFolder: 04 Time
+		lineageTag: 537a89c1-fc20-42e8-ba7c-d49aaab6fdbf
+
+	/// Short name of the last month in the selection
+	measure 'Latest Month Name' = FORMAT ( [Latest Month Date], "mmm" )
+		displayFolder: 04 Time
+		lineageTag: 5dad03f2-a63a-4523-9e48-9793d1e83db2
+
+	/// Short name of the month before the last month in the selection
+	measure 'Prior Month Name' = FORMAT ( EOMONTH ( [Latest Month Date], -1 ), "mmm" )
+		displayFolder: 04 Time
+		lineageTag: b03d9954-df15-45a2-b0d7-f5ad2767b9fb
+
+	/// Latest month vs prior month % change in Revenue
+	measure 'Revenue vs PM' =
+			VAR _d = [Latest Month Date]
+			VAR _cur = CALCULATE ( [Total Revenue], REMOVEFILTERS ( dim_calendar ), dim_calendar[Date] = _d )
+			VAR _prv = CALCULATE ( [Total Revenue], REMOVEFILTERS ( dim_calendar ), dim_calendar[Date] = EOMONTH ( _d, -1 ) )
+			RETURN IF ( NOT ISBLANK ( _prv ), DIVIDE ( _cur - _prv, ABS ( _prv ) ) )
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: 05 Card Deltas
+		lineageTag: 454c04c6-8e97-4bdb-921f-fb78505e38c0
+
+	/// Card subtitle: arrow + change in Revenue, latest vs prior month
+	measure 'Revenue vs PM Label' =
+			VAR _c = [Revenue vs PM]
+			RETURN
+			    IF (
+			        ISBLANK ( _c ),
+			        "No prior month",
+			        [Latest Month Name] & IF ( _c >= 0, " ▲ ", " ▼ " ) & FORMAT ( ABS ( _c ), "0.0%" ) & " vs " & [Prior Month Name]
+			    )
+		displayFolder: 05 Card Deltas
+		lineageTag: 6f29efcc-5e89-4aad-9396-536c6980ba1c
+
+	/// Font colour for Revenue delta (increase is good)
+	measure 'Revenue vs PM Color' =
+			VAR _c = [Revenue vs PM]
+			RETURN SWITCH ( TRUE (), ISBLANK ( _c ), "#5A6478", _c >= 0, "#2A9D8F", "#C8553D" )
+		displayFolder: 05 Card Deltas
+		lineageTag: 55e9ac31-71df-43b5-a147-4b68eb4e18c7
+
+	/// Latest month vs prior month % change in Gross Profit
+	measure 'Gross Profit vs PM' =
+			VAR _d = [Latest Month Date]
+			VAR _cur = CALCULATE ( [Gross Profit], REMOVEFILTERS ( dim_calendar ), dim_calendar[Date] = _d )
+			VAR _prv = CALCULATE ( [Gross Profit], REMOVEFILTERS ( dim_calendar ), dim_calendar[Date] = EOMONTH ( _d, -1 ) )
+			RETURN IF ( NOT ISBLANK ( _prv ), DIVIDE ( _cur - _prv, ABS ( _prv ) ) )
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: 05 Card Deltas
+		lineageTag: 7d44a710-acb2-4d21-925b-fba16a671d70
+
+	/// Card subtitle: arrow + change in Gross Profit, latest vs prior month
+	measure 'Gross Profit vs PM Label' =
+			VAR _c = [Gross Profit vs PM]
+			RETURN
+			    IF (
+			        ISBLANK ( _c ),
+			        "No prior month",
+			        [Latest Month Name] & IF ( _c >= 0, " ▲ ", " ▼ " ) & FORMAT ( ABS ( _c ), "0.0%" ) & " vs " & [Prior Month Name]
+			    )
+		displayFolder: 05 Card Deltas
+		lineageTag: 7fbe7a96-9964-4c42-a31e-d9d3e296f3ce
+
+	/// Font colour for Gross Profit delta (increase is good)
+	measure 'Gross Profit vs PM Color' =
+			VAR _c = [Gross Profit vs PM]
+			RETURN SWITCH ( TRUE (), ISBLANK ( _c ), "#5A6478", _c >= 0, "#2A9D8F", "#C8553D" )
+		displayFolder: 05 Card Deltas
+		lineageTag: 3dcb25f4-4768-42e4-87a9-0d10459f6be6
+
+	/// Latest month vs prior month % change in Opex
+	measure 'Opex vs PM' =
+			VAR _d = [Latest Month Date]
+			VAR _cur = CALCULATE ( [Total Opex], REMOVEFILTERS ( dim_calendar ), dim_calendar[Date] = _d )
+			VAR _prv = CALCULATE ( [Total Opex], REMOVEFILTERS ( dim_calendar ), dim_calendar[Date] = EOMONTH ( _d, -1 ) )
+			RETURN IF ( NOT ISBLANK ( _prv ), DIVIDE ( _cur - _prv, ABS ( _prv ) ) )
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: 05 Card Deltas
+		lineageTag: 1dad6bf0-7777-472f-a08a-55a5abf68e2f
+
+	/// Card subtitle: arrow + change in Opex, latest vs prior month
+	measure 'Opex vs PM Label' =
+			VAR _c = [Opex vs PM]
+			RETURN
+			    IF (
+			        ISBLANK ( _c ),
+			        "No prior month",
+			        [Latest Month Name] & IF ( _c >= 0, " ▲ ", " ▼ " ) & FORMAT ( ABS ( _c ), "0.0%" ) & " vs " & [Prior Month Name]
+			    )
+		displayFolder: 05 Card Deltas
+		lineageTag: b77abc83-1163-4a53-89dc-dddbbc442458
+
+	/// Font colour for Opex delta (increase is bad)
+	measure 'Opex vs PM Color' =
+			VAR _c = [Opex vs PM]
+			RETURN SWITCH ( TRUE (), ISBLANK ( _c ), "#5A6478", _c >= 0, "#C8553D", "#2A9D8F" )
+		displayFolder: 05 Card Deltas
+		lineageTag: 38283938-f397-4f88-83e6-798d0ab5f12f
+
+	/// Latest month vs prior month % change in EBIT
+	measure 'EBIT vs PM' =
+			VAR _d = [Latest Month Date]
+			VAR _cur = CALCULATE ( [EBIT], REMOVEFILTERS ( dim_calendar ), dim_calendar[Date] = _d )
+			VAR _prv = CALCULATE ( [EBIT], REMOVEFILTERS ( dim_calendar ), dim_calendar[Date] = EOMONTH ( _d, -1 ) )
+			RETURN IF ( NOT ISBLANK ( _prv ), DIVIDE ( _cur - _prv, ABS ( _prv ) ) )
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: 05 Card Deltas
+		lineageTag: e99e22f2-73ae-4c6a-9481-f60b60f97f06
+
+	/// Card subtitle: arrow + change in EBIT, latest vs prior month
+	measure 'EBIT vs PM Label' =
+			VAR _c = [EBIT vs PM]
+			RETURN
+			    IF (
+			        ISBLANK ( _c ),
+			        "No prior month",
+			        [Latest Month Name] & IF ( _c >= 0, " ▲ ", " ▼ " ) & FORMAT ( ABS ( _c ), "0.0%" ) & " vs " & [Prior Month Name]
+			    )
+		displayFolder: 05 Card Deltas
+		lineageTag: 5b1824e3-57d0-41eb-886e-2c7e99fbec45
+
+	/// Font colour for EBIT delta (increase is good)
+	measure 'EBIT vs PM Color' =
+			VAR _c = [EBIT vs PM]
+			RETURN SWITCH ( TRUE (), ISBLANK ( _c ), "#5A6478", _c >= 0, "#2A9D8F", "#C8553D" )
+		displayFolder: 05 Card Deltas
+		lineageTag: f5095e3e-b820-4996-8793-5a6ba53bf583
+
+	/// Latest month vs prior month % change in Net Profit
+	measure 'Net Profit vs PM' =
+			VAR _d = [Latest Month Date]
+			VAR _cur = CALCULATE ( [Net Profit], REMOVEFILTERS ( dim_calendar ), dim_calendar[Date] = _d )
+			VAR _prv = CALCULATE ( [Net Profit], REMOVEFILTERS ( dim_calendar ), dim_calendar[Date] = EOMONTH ( _d, -1 ) )
+			RETURN IF ( NOT ISBLANK ( _prv ), DIVIDE ( _cur - _prv, ABS ( _prv ) ) )
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: 05 Card Deltas
+		lineageTag: c90420f8-84f3-4f26-b931-bd8081f00965
+
+	/// Card subtitle: arrow + change in Net Profit, latest vs prior month
+	measure 'Net Profit vs PM Label' =
+			VAR _c = [Net Profit vs PM]
+			RETURN
+			    IF (
+			        ISBLANK ( _c ),
+			        "No prior month",
+			        [Latest Month Name] & IF ( _c >= 0, " ▲ ", " ▼ " ) & FORMAT ( ABS ( _c ), "0.0%" ) & " vs " & [Prior Month Name]
+			    )
+		displayFolder: 05 Card Deltas
+		lineageTag: e81d14bb-ab87-4e34-8800-515ca7449537
+
+	/// Font colour for Net Profit delta (increase is good)
+	measure 'Net Profit vs PM Color' =
+			VAR _c = [Net Profit vs PM]
+			RETURN SWITCH ( TRUE (), ISBLANK ( _c ), "#5A6478", _c >= 0, "#2A9D8F", "#C8553D" )
+		displayFolder: 05 Card Deltas
+		lineageTag: 9239d615-1ce7-4080-adf0-13a83cb277c3
+
+	/// Latest month vs prior month change in Net Margin (percentage points)
+	measure 'Net Margin vs PM' =
+			VAR _d = [Latest Month Date]
+			VAR _cur = CALCULATE ( [Net Profit Margin %], REMOVEFILTERS ( dim_calendar ), dim_calendar[Date] = _d )
+			VAR _prv = CALCULATE ( [Net Profit Margin %], REMOVEFILTERS ( dim_calendar ), dim_calendar[Date] = EOMONTH ( _d, -1 ) )
+			RETURN IF ( NOT ISBLANK ( _prv ), _cur - _prv )
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: 05 Card Deltas
+		lineageTag: 04bc7df2-b93b-4da3-9834-f212628a5668
+
+	/// Card subtitle: arrow + change in Net Margin, latest vs prior month
+	measure 'Net Margin vs PM Label' =
+			VAR _c = [Net Margin vs PM]
+			RETURN
+			    IF (
+			        ISBLANK ( _c ),
+			        "No prior month",
+			        [Latest Month Name] & IF ( _c >= 0, " ▲ ", " ▼ " ) & FORMAT ( ABS ( _c ) * 100, "0.0" ) & " pp" & " vs " & [Prior Month Name]
+			    )
+		displayFolder: 05 Card Deltas
+		lineageTag: cae42379-1091-4e21-9fca-0d6fce08a9bd
+
+	/// Font colour for Net Margin delta (increase is good)
+	measure 'Net Margin vs PM Color' =
+			VAR _c = [Net Margin vs PM]
+			RETURN SWITCH ( TRUE (), ISBLANK ( _c ), "#5A6478", _c >= 0, "#2A9D8F", "#C8553D" )
+		displayFolder: 05 Card Deltas
+		lineageTag: 6341d7ac-626f-481c-81e0-28d494072aca
+
+	/// Latest month vs prior month change in Gross Margin (percentage points)
+	measure 'Gross Margin vs PM' =
+			VAR _d = [Latest Month Date]
+			VAR _cur = CALCULATE ( [Gross Profit Margin %], REMOVEFILTERS ( dim_calendar ), dim_calendar[Date] = _d )
+			VAR _prv = CALCULATE ( [Gross Profit Margin %], REMOVEFILTERS ( dim_calendar ), dim_calendar[Date] = EOMONTH ( _d, -1 ) )
+			RETURN IF ( NOT ISBLANK ( _prv ), _cur - _prv )
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: 05 Card Deltas
+		lineageTag: 51338a52-5c13-4c0e-b352-89906ac7fcec
+
+	/// Card subtitle: arrow + change in Gross Margin, latest vs prior month
+	measure 'Gross Margin vs PM Label' =
+			VAR _c = [Gross Margin vs PM]
+			RETURN
+			    IF (
+			        ISBLANK ( _c ),
+			        "No prior month",
+			        [Latest Month Name] & IF ( _c >= 0, " ▲ ", " ▼ " ) & FORMAT ( ABS ( _c ) * 100, "0.0" ) & " pp" & " vs " & [Prior Month Name]
+			    )
+		displayFolder: 05 Card Deltas
+		lineageTag: 32ea9601-171e-440f-9a0d-b10513d24a42
+
+	/// Font colour for Gross Margin delta (increase is good)
+	measure 'Gross Margin vs PM Color' =
+			VAR _c = [Gross Margin vs PM]
+			RETURN SWITCH ( TRUE (), ISBLANK ( _c ), "#5A6478", _c >= 0, "#2A9D8F", "#C8553D" )
+		displayFolder: 05 Card Deltas
+		lineageTag: 64700e4e-b6aa-408b-a44f-e3fa19243e8f
+
+	/// Latest month vs prior month change in Opex Ratio (percentage points)
+	measure 'Opex Ratio vs PM' =
+			VAR _d = [Latest Month Date]
+			VAR _cur = CALCULATE ( [Opex Ratio %], REMOVEFILTERS ( dim_calendar ), dim_calendar[Date] = _d )
+			VAR _prv = CALCULATE ( [Opex Ratio %], REMOVEFILTERS ( dim_calendar ), dim_calendar[Date] = EOMONTH ( _d, -1 ) )
+			RETURN IF ( NOT ISBLANK ( _prv ), _cur - _prv )
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: 05 Card Deltas
+		lineageTag: ffe186c9-04c7-446c-8722-3c11a44599ce
+
+	/// Card subtitle: arrow + change in Opex Ratio, latest vs prior month
+	measure 'Opex Ratio vs PM Label' =
+			VAR _c = [Opex Ratio vs PM]
+			RETURN
+			    IF (
+			        ISBLANK ( _c ),
+			        "No prior month",
+			        [Latest Month Name] & IF ( _c >= 0, " ▲ ", " ▼ " ) & FORMAT ( ABS ( _c ) * 100, "0.0" ) & " pp" & " vs " & [Prior Month Name]
+			    )
+		displayFolder: 05 Card Deltas
+		lineageTag: cef992f7-916b-4fc8-888d-3d60fdec4a98
+
+	/// Font colour for Opex Ratio delta (increase is bad)
+	measure 'Opex Ratio vs PM Color' =
+			VAR _c = [Opex Ratio vs PM]
+			RETURN SWITCH ( TRUE (), ISBLANK ( _c ), "#5A6478", _c >= 0, "#C8553D", "#2A9D8F" )
+		displayFolder: 05 Card Deltas
+		lineageTag: f74b4715-4a45-4af1-830b-ad8b8d2e8bba
+
+	/// Costs treated as fixed: Opex + Interest & Tax
+	measure 'Fixed Cost' =
+			// Simplifying assumption: COGS is variable, everything below gross profit is fixed
+			[Total Opex] + [Total Interest & Tax]
+		formatString: \$#,0
+		displayFolder: 06 Break-even
+		lineageTag: d70f4ccb-bfd0-4888-a50d-459fe461a3a5
+
+	/// 1 - COGS ratio: share of each revenue dollar left to cover fixed costs
+	measure 'Contribution Margin %' = 1 - [COGS Ratio %]
+		formatString: 0.00%;-0.00%;0.00%
+		displayFolder: 06 Break-even
+		lineageTag: 0ae8ad62-2af2-4cee-8a8b-860131cd375a
+
+	/// Revenue needed to cover fixed costs in the current context
+	measure 'Break-even Revenue' = DIVIDE ( [Fixed Cost], [Contribution Margin %] )
+		formatString: \$#,0
+		displayFolder: 06 Break-even
+		lineageTag: 8ac4a295-9fd6-4b55-ba4b-ee2ae7d5a23b
+
+	/// How far revenue can fall before reaching break-even
+	measure 'Margin of Safety %' = DIVIDE ( [Total Revenue] - [Break-even Revenue], [Total Revenue] )
+		formatString: 0.00%;-0.00%;0.00%
+		displayFolder: 06 Break-even
+		lineageTag: 68bf0637-efe0-4e28-9165-926dab4e5e75
+
+	/// Number of month-end postings in context
+	measure 'Months in Selection' = DISTINCTCOUNT ( fact_financial[Date] )
+		formatString: 0
+		displayFolder: 06 Break-even
+		lineageTag: 9020d73a-df9f-48ec-a3ea-96bbd75c41a2
+
+	/// Total revenue / months in selection
+	measure 'Avg Monthly Revenue' = DIVIDE ( [Total Revenue], [Months in Selection] )
+		formatString: \$#,0
+		displayFolder: 06 Break-even
+		lineageTag: 8c492e7a-49a8-452f-a282-dcc74a087678
+
+	/// Break-even revenue per month (average fixed cost / contribution margin)
+	measure 'Monthly Break-even Revenue' = DIVIDE ( [Break-even Revenue], [Months in Selection] )
+		formatString: \$#,0
+		displayFolder: 06 Break-even
+		lineageTag: 830aef87-9790-464d-ac13-666ee8ef73a1
+
+	/// What-if revenue change picked on the slicer (default 0%)
+	measure 'Revenue Change Selected' = SELECTEDVALUE ( prm_revenue_change[Value], 0 )
+		formatString: +0%;-0%;0%
+		displayFolder: 06 Break-even
+		lineageTag: 60c06aca-5bfe-4201-855c-c28e283d0da0
+
+	/// Revenue after the what-if change
+	measure 'Scenario Revenue' = [Total Revenue] * ( 1 + [Revenue Change Selected] )
+		formatString: \$#,0
+		displayFolder: 06 Break-even
+		lineageTag: a6666d57-95cc-40b6-a1e7-d471df290383
+
+	/// Net profit if revenue moves by the what-if % (COGS scales, opex and I&T fixed)
+	measure 'Scenario Net Profit' =
+			VAR _x = [Revenue Change Selected]
+			RETURN
+			    [Total Revenue] * ( 1 + _x ) - [Total COGS] * ( 1 + _x ) - [Fixed Cost]
+		formatString: \$#,0;-\$#,0
+		displayFolder: 06 Break-even
+		lineageTag: 1f613a5f-7cb0-4b6b-affe-7a516054720b
+
+	/// Scenario net profit / scenario revenue
+	measure 'Scenario Net Margin %' = DIVIDE ( [Scenario Net Profit], [Scenario Revenue] )
+		formatString: 0.00%;-0.00%;0.00%
+		displayFolder: 06 Break-even
+		lineageTag: 7e8c1e65-b516-429e-bf27-48f4dcb94bde
+
+	/// Share of total revenue across business lines
+	measure 'Revenue Share %' = DIVIDE ( [Total Revenue], CALCULATE ( [Total Revenue], REMOVEFILTERS ( dim_business_line ) ) )
+		formatString: 0.0%
+		displayFolder: 07 Mix
+		lineageTag: 3747eb2e-8517-442c-a822-412899406242
+
+	/// Share of total net profit across business lines (negative = destroys profit)
+	measure 'Profit Share %' = DIVIDE ( [Net Profit], CALCULATE ( [Net Profit], REMOVEFILTERS ( dim_business_line ) ) )
+		formatString: 0.0%;-0.0%
+		displayFolder: 07 Mix
+		lineageTag: 4de85f00-f48b-4b6a-98e6-f5009cc84e30
+
+	/// Subgroup cost as % of revenue in the same business line / period
+	measure 'Cost % of Revenue' = DIVIDE ( [Amount (Abs)], CALCULATE ( [Total Revenue], REMOVEFILTERS ( dim_subgroup ), REMOVEFILTERS ( dim_group ) ) )
+		formatString: 0.0%
+		displayFolder: 07 Mix
+		lineageTag: 448da67e-f570-4195-8cb3-71a527b844c3
+
+	/// Subgroup share of its P&L group (e.g. Labor share of COGS)
+	measure 'Share of Group %' = DIVIDE ( [Amount (Abs)], CALCULATE ( [Amount (Abs)], REMOVEFILTERS ( dim_subgroup ) ) )
+		formatString: 0.0%
+		displayFolder: 07 Mix
+		lineageTag: 2b326b7b-e8ba-4a80-8d1e-7fd4233e1d93
+
+	/// Bar colour: coral for loss, teal for profit
+	measure 'Net Profit Color' = IF ( [Net Profit] < 0, "#C8553D", "#2A9D8F" )
+		displayFolder: 08 Display
+		lineageTag: 2a44624d-ab1b-4b8d-845a-4aa05ab5a6d1
+
+	/// Colour for net margin: coral < 0, amber < 15%, teal otherwise
+	measure 'Margin Color' =
+			VAR _m = [Net Profit Margin %]
+			RETURN SWITCH ( TRUE (), _m < 0, "#C8553D", _m < 0.15, "#E09F3E", "#2A9D8F" )
+		displayFolder: 08 Display
+		lineageTag: effe8776-7e6c-4917-abdb-cd12ef785f45
+
+	/// Header text for the selected period
+	measure 'Report Period' =
+			VAR _min = CALCULATE ( MIN ( fact_financial[Date] ) )
+			VAR _max = CALCULATE ( MAX ( fact_financial[Date] ) )
+			RETURN IF ( FORMAT ( _min, "mmm yyyy" ) = FORMAT ( _max, "mmm yyyy" ), FORMAT ( _max, "mmmm yyyy" ), FORMAT ( _min, "mmm" ) & " – " & FORMAT ( _max, "mmm yyyy" ) )
+		displayFolder: 08 Display
+		lineageTag: 61687508-b035-4073-aaad-eba0d4d4ca3e
+
+	/// Dynamic one-line insight: best and worst net-margin month in the selection
+	measure 'Insight Headline' =
+			VAR _months =
+			    ADDCOLUMNS (
+			        SUMMARIZE ( fact_financial, dim_calendar[Month], dim_calendar[Month in text] ),
+			        "@npm", [Net Profit Margin %]
+			    )
+			VAR _best = TOPN ( 1, _months, [@npm], DESC )
+			VAR _worst = TOPN ( 1, _months, [@npm], ASC )
+			VAR _bestName = MAXX ( _best, dim_calendar[Month in text] )
+			VAR _worstName = MAXX ( _worst, dim_calendar[Month in text] )
+			RETURN
+			    IF (
+			        COUNTROWS ( _months ) > 1,
+			        "Net margin " & FORMAT ( [Net Profit Margin %], "0.0%" ) & " · best " & _bestName & " " & FORMAT ( MAXX ( _best, [@npm] ), "0.0%" ) & ", weakest " & _worstName & " " & FORMAT ( MAXX ( _worst, [@npm] ), "0.0%" ),
+			        "Net margin " & FORMAT ( [Net Profit Margin %], "0.0%" ) & " in " & [Report Period]
+			    )
+		displayFolder: 08 Display
+		lineageTag: 6da53b44-78e2-44a5-9caf-6b2ce64701a1
+
+	/// Number of months with negative net profit in context
+	measure 'Loss-making Months' = COUNTROWS ( FILTER ( VALUES ( dim_calendar[Month] ), [Net Profit] < 0 ) )
+		formatString: 0
+		displayFolder: 08 Display
+		lineageTag: b9a125c3-6c0a-49d5-ba68-790caf999e97
+
+	/// Revenue-weighted industry benchmark for Gross Margin (Damodaran, Jan 2026): each business line mapped to its industry
+	measure 'Benchmark Gross Margin' =
+			// Weight each line's industry benchmark by that line's revenue in the current context
+			VAR _t =
+			    ADDCOLUMNS (
+			        VALUES ( dim_business_line[Business Line ID] ),
+			        "@rev", [Total Revenue],
+			        "@bm", LOOKUPVALUE ( dim_benchmark[Bm Gross Margin], dim_benchmark[Business Line ID], dim_business_line[Business Line ID] )
+			    )
+			RETURN
+			    DIVIDE ( SUMX ( _t, [@rev] * [@bm] ), SUMX ( _t, [@rev] ) )
+		formatString: 0.0%;-0.0%
+		displayFolder: 09 Benchmark
+		lineageTag: fc60730f-a991-435c-a7a8-557528cc7c5b
+
+	/// Gross Margin actual minus benchmark (percentage points)
+	measure 'Gross Margin Gap vs Benchmark' = [Gross Profit Margin %] - [Benchmark Gross Margin]
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: 09 Benchmark
+		lineageTag: 43b4a6cd-8404-48d2-95fc-a91c7e6dc4b6
+
+	/// Teal when Gross Margin beats its benchmark, coral otherwise
+	measure 'Gross Margin Benchmark Color' =
+			VAR _g = [Gross Margin Gap vs Benchmark]
+			RETURN IF ( ISBLANK ( _g ), "#5A6478", IF ( _g >= 0, "#2A9D8F", "#C8553D" ) )
+		displayFolder: 09 Benchmark
+		lineageTag: 646267bf-9530-478b-a7e7-4e2fe802dcc0
+
+	/// Revenue-weighted industry benchmark for Opex Ratio (Damodaran, Jan 2026): each business line mapped to its industry
+	measure 'Benchmark Opex Ratio' =
+			// Weight each line's industry benchmark by that line's revenue in the current context
+			VAR _t =
+			    ADDCOLUMNS (
+			        VALUES ( dim_business_line[Business Line ID] ),
+			        "@rev", [Total Revenue],
+			        "@bm", LOOKUPVALUE ( dim_benchmark[Bm Opex Ratio], dim_benchmark[Business Line ID], dim_business_line[Business Line ID] )
+			    )
+			RETURN
+			    DIVIDE ( SUMX ( _t, [@rev] * [@bm] ), SUMX ( _t, [@rev] ) )
+		formatString: 0.0%;-0.0%
+		displayFolder: 09 Benchmark
+		lineageTag: ed07d7d5-c464-4574-b653-0b7e7b289ccd
+
+	/// Opex Ratio actual minus benchmark (percentage points); negative is better
+	measure 'Opex Ratio Gap vs Benchmark' = [Opex Ratio %] - [Benchmark Opex Ratio]
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: 09 Benchmark
+		lineageTag: 0aa5446b-1be7-4686-8f43-df78d7f91e19
+
+	/// Teal when Opex Ratio beats its benchmark, coral otherwise
+	measure 'Opex Ratio Benchmark Color' =
+			VAR _g = [Opex Ratio Gap vs Benchmark]
+			RETURN IF ( ISBLANK ( _g ), "#5A6478", IF ( _g <= 0, "#2A9D8F", "#C8553D" ) )
+		displayFolder: 09 Benchmark
+		lineageTag: 765fd3fe-4b65-44db-964c-16359dcd64cd
+
+	/// Revenue-weighted industry benchmark for EBIT Margin (Damodaran, Jan 2026): each business line mapped to its industry
+	measure 'Benchmark EBIT Margin' =
+			// Weight each line's industry benchmark by that line's revenue in the current context
+			VAR _t =
+			    ADDCOLUMNS (
+			        VALUES ( dim_business_line[Business Line ID] ),
+			        "@rev", [Total Revenue],
+			        "@bm", LOOKUPVALUE ( dim_benchmark[Bm EBIT Margin], dim_benchmark[Business Line ID], dim_business_line[Business Line ID] )
+			    )
+			RETURN
+			    DIVIDE ( SUMX ( _t, [@rev] * [@bm] ), SUMX ( _t, [@rev] ) )
+		formatString: 0.0%;-0.0%
+		displayFolder: 09 Benchmark
+		lineageTag: ef44d8d8-da44-4e0c-a1c3-9335cad249d7
+
+	/// EBIT Margin actual minus benchmark (percentage points)
+	measure 'EBIT Margin Gap vs Benchmark' = [EBIT Margin %] - [Benchmark EBIT Margin]
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: 09 Benchmark
+		lineageTag: 43c09d79-e6e6-40c8-a6d9-0a45161f2adf
+
+	/// Teal when EBIT Margin beats its benchmark, coral otherwise
+	measure 'EBIT Margin Benchmark Color' =
+			VAR _g = [EBIT Margin Gap vs Benchmark]
+			RETURN IF ( ISBLANK ( _g ), "#5A6478", IF ( _g >= 0, "#2A9D8F", "#C8553D" ) )
+		displayFolder: 09 Benchmark
+		lineageTag: 78e0c1ab-0aef-404f-ab78-d97a8a6a8bbe
+
+	/// Revenue-weighted industry benchmark for Net Margin (Damodaran, Jan 2026): each business line mapped to its industry
+	measure 'Benchmark Net Margin' =
+			// Weight each line's industry benchmark by that line's revenue in the current context
+			VAR _t =
+			    ADDCOLUMNS (
+			        VALUES ( dim_business_line[Business Line ID] ),
+			        "@rev", [Total Revenue],
+			        "@bm", LOOKUPVALUE ( dim_benchmark[Bm Net Margin], dim_benchmark[Business Line ID], dim_business_line[Business Line ID] )
+			    )
+			RETURN
+			    DIVIDE ( SUMX ( _t, [@rev] * [@bm] ), SUMX ( _t, [@rev] ) )
+		formatString: 0.00%;-0.00%;0.00%
+		displayFolder: 09 Benchmark
+		lineageTag: e26884e1-9023-4f0d-87d1-72aa829e94c4
+
+	/// Net Margin actual minus benchmark (percentage points)
+	measure 'Net Margin Gap vs Benchmark' = [Net Profit Margin %] - [Benchmark Net Margin]
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: 09 Benchmark
+		lineageTag: 7cb9c431-8a31-498b-885e-7527dfb150a6
+
+	/// Teal when Net Margin beats its benchmark, coral otherwise
+	measure 'Net Margin Benchmark Color' =
+			VAR _g = [Net Margin Gap vs Benchmark]
+			RETURN IF ( ISBLANK ( _g ), "#5A6478", IF ( _g >= 0, "#2A9D8F", "#C8553D" ) )
+		displayFolder: 09 Benchmark
+		lineageTag: 43702af1-83c9-4466-b190-5cbd3c0f148e
+
+	/// Industry used as benchmark for the selected business line
+	measure 'Benchmark Industry Label' = IF ( HASONEVALUE ( dim_business_line[Business Line ID] ), LOOKUPVALUE ( dim_benchmark[Benchmark Industry], dim_benchmark[Business Line ID], SELECTEDVALUE ( dim_business_line[Business Line ID] ) ), "Revenue-weighted mix of industries" )
+		displayFolder: 09 Benchmark
+		lineageTag: a8a2ac74-1ffb-4da6-a3b3-954a8288e8d9
+
+	/// Footnote text for benchmark visuals
+	measure 'Benchmark Source' = "Benchmark: Damodaran, Margins by Sector (US), data as of Jan 2026. Nutrition = Food Processing, Sports Equipment = Recreation, Sportswear = Apparel. Opex = SG&A + R&D."
+		displayFolder: 09 Benchmark
+		lineageTag: 2b129617-5824-438e-bec0-b8952e1b47e5
+
+	/// Waterfall input: detail P&L lines only; the visual total equals Net Profit
+	measure 'Bridge Value' =
+			// On a single headline: return only detail lines (Revenue, COGS, Opex, I&T). With no headline filter (waterfall total): Net Profit
+			IF (
+			    HASONEVALUE ( dim_headline[Order] ),
+			    IF ( SELECTEDVALUE ( dim_headline[Detail] ) = 1, [P&L Value] ),
+			    [Net Profit]
+			)
+		formatString: \$#,0;-\$#,0
+		displayFolder: 02 P&L
+		lineageTag: 125d0aad-68d4-4748-be05-678be441e607
+
+	/// COGS labor cost (largest single cost line)
+	measure 'Labor Cost' = CALCULATE ( [Total COGS], dim_subgroup[Subgroup] = "Labor" )
+		formatString: \$#,0
+		displayFolder: 07 Mix
+		lineageTag: 0e15666e-5516-45c9-9e6c-e7bcac2db050
+
+	/// Labor cost / revenue
+	measure 'Labor % of Revenue' = DIVIDE ( [Labor Cost], [Total Revenue] )
+		formatString: 0.0%
+		displayFolder: 07 Mix
+		lineageTag: 7da5c7d6-70f9-481e-8ffc-70fbea425ef5
+
+	/// Opex saved if Nutrition ran at Sports Equipment's opex ratio (illustrative, assumes direct costs)
+	measure 'Nutrition Opex Saving Scenario' =
+			VAR _nutRev = CALCULATE ( [Total Revenue], dim_business_line[Business Line ID] = 1 )
+			VAR _nutOpex = CALCULATE ( [Total Opex], dim_business_line[Business Line ID] = 1 )
+			VAR _seRatio = CALCULATE ( [Opex Ratio %], dim_business_line[Business Line ID] = 2 )
+			RETURN MAX ( 0, _nutOpex - _nutRev * _seRatio )
+		formatString: \$#,0
+		displayFolder: 09 Benchmark
+		lineageTag: 4ff7824b-c0af-47b6-bad9-6e763e80f05d
+
+	/// Group net margin after the Nutrition opex scenario
+	measure 'Scenario Group Net Margin' =
+			VAR _allRev = CALCULATE ( [Total Revenue], REMOVEFILTERS ( dim_business_line ) )
+			VAR _allNP = CALCULATE ( [Net Profit], REMOVEFILTERS ( dim_business_line ) )
+			RETURN DIVIDE ( _allNP + [Nutrition Opex Saving Scenario], _allRev )
+		formatString: 0.0%
+		displayFolder: 09 Benchmark
+		lineageTag: 37f63e38-502d-47fc-945b-3f66299d9206
+
+	/// Header subtitle for Executive Overview
+	measure 'Page Title Overview' = "FY2023 performance · " & [Report Period]
+		displayFolder: 08 Display
+		lineageTag: 29020d26-2c3b-4748-a750-8c5611dfa1d0
+
+	/// Cost line (non-revenue) as % of revenue; revenue subgroups return blank
+	measure 'Expense % of Revenue' =
+			DIVIDE (
+			    - CALCULATE ( SUM ( fact_financial[Amount] ), fact_financial[Group ID] <> 1 ),
+			    CALCULATE ( [Total Revenue], REMOVEFILTERS ( dim_subgroup ), REMOVEFILTERS ( dim_group ) )
+			)
+		formatString: 0.00%;-0.00%;0.00%
+		displayFolder: 07 Mix
+		lineageTag: b833c100-576f-4140-9f1a-4d1bc5b38850
+
+	/// Tile note: COGS as % of revenue
+	measure 'COGS Ratio Label' = FORMAT ( [COGS Ratio %], "0.0%" ) & " of revenue"
+		displayFolder: 08 Display
+		lineageTag: 29064c4b-a5a7-435e-9d72-bbfa21cd9cc6
+
+	/// Tile note: labor as % of revenue
+	measure 'Labor Share Label' = FORMAT ( [Labor % of Revenue], "0.0%" ) & " of revenue"
+		displayFolder: 08 Display
+		lineageTag: 61e328bf-647b-4f2c-807a-7cfd44b9ca77
+
+	/// Tile note: average fixed cost per month
+	measure 'Fixed Cost Label' = "Fixed cost " & FORMAT ( DIVIDE ( [Fixed Cost], [Months in Selection] ), "$#,0" ) & " / month"
+		displayFolder: 08 Display
+		lineageTag: 0d38fc70-9aa4-4abe-9209-fee27af04ac4
+
+	/// Tile note: months in selection
+	measure 'Avg Revenue Label' = FORMAT ( [Months in Selection], "0" ) & " months in view"
+		displayFolder: 08 Display
+		lineageTag: 3aa9e44b-c5a5-4f3a-af4a-35885e1cb7df
+
+	/// Tile note: what margin of safety means
+	measure 'Safety Label' = "Revenue can fall " & FORMAT ( [Margin of Safety %], "0%" ) & " before a loss"
+		displayFolder: 08 Display
+		lineageTag: 4f890ed7-04f3-4d74-9160-7e0fe61c7298
+
+	/// Tile note: contribution per dollar
+	measure 'Contribution Label' = "Each $1 of sales leaves " & FORMAT ( [Contribution Margin %], "$0.00" )
+		displayFolder: 08 Display
+		lineageTag: bc8c39df-8581-48d3-84e0-073411aaa045
+
+	/// Muted grey for neutral notes
+	measure 'Neutral Color' = "#5A6478"
+		displayFolder: 08 Display
+		lineageTag: 5b194e6a-995e-4146-a93a-130273f9ad5b
+
+	/// Tile note: Gross Margin vs industry benchmark in pp
+	measure 'Gross Margin Gap Label' =
+			VAR _g = [Gross Margin Gap vs Benchmark]
+			RETURN IF ( ISBLANK ( _g ), "No benchmark", IF ( _g >= 0, "▲ ", "▼ " ) & FORMAT ( ABS ( _g ) * 100, "0.0" ) & " pp vs industry " & FORMAT ( [Benchmark Gross Margin], "0.0%" ) )
+		displayFolder: 09 Benchmark
+		lineageTag: c6a6668d-85ea-4bb5-a367-4eb19d04f1a8
+
+	/// Tile note: Opex Ratio vs industry benchmark in pp
+	measure 'Opex Ratio Gap Label' =
+			VAR _g = [Opex Ratio Gap vs Benchmark]
+			RETURN IF ( ISBLANK ( _g ), "No benchmark", IF ( _g >= 0, "▲ ", "▼ " ) & FORMAT ( ABS ( _g ) * 100, "0.0" ) & " pp vs industry " & FORMAT ( [Benchmark Opex Ratio], "0.0%" ) )
+		displayFolder: 09 Benchmark
+		lineageTag: aba42928-2bda-4e96-8d8d-a0fd11f49eab
+
+	/// Tile note: EBIT Margin vs industry benchmark in pp
+	measure 'EBIT Margin Gap Label' =
+			VAR _g = [EBIT Margin Gap vs Benchmark]
+			RETURN IF ( ISBLANK ( _g ), "No benchmark", IF ( _g >= 0, "▲ ", "▼ " ) & FORMAT ( ABS ( _g ) * 100, "0.0" ) & " pp vs industry " & FORMAT ( [Benchmark EBIT Margin], "0.0%" ) )
+		displayFolder: 09 Benchmark
+		lineageTag: 9bc74a2d-3fae-4357-8b01-86ada046954c
+
+	/// Tile note: Net Margin vs industry benchmark in pp
+	measure 'Net Margin Gap Label' =
+			VAR _g = [Net Margin Gap vs Benchmark]
+			RETURN IF ( ISBLANK ( _g ), "No benchmark", IF ( _g >= 0, "▲ ", "▼ " ) & FORMAT ( ABS ( _g ) * 100, "0.0" ) & " pp vs industry " & FORMAT ( [Benchmark Net Margin], "0.0%" ) )
+		displayFolder: 09 Benchmark
+		lineageTag: 635dc850-ef52-4f9e-b19b-9ccb7d344d85
+
+	/// KPI card display of [Total Revenue] in compact units
+	measure 'Card Revenue' = [Total Revenue]
+		formatString: \$0,,.00"M";-\$0,,.00"M"
+		displayFolder: 10 Cards
+		lineageTag: 834d4f54-960e-4cdf-a8dd-02dd725f545b
+
+	/// KPI card display of [Gross Profit] in compact units
+	measure 'Card Gross Profit' = [Gross Profit]
+		formatString: \$0,,.00"M";-\$0,,.00"M"
+		displayFolder: 10 Cards
+		lineageTag: 2e080ca8-72ec-4178-b267-81fae85a38ef
+
+	/// KPI card display of [Total Opex] in compact units
+	measure 'Card Opex' = [Total Opex]
+		formatString: \$0,,.00"M";-\$0,,.00"M"
+		displayFolder: 10 Cards
+		lineageTag: a31ce6e4-ccb9-43f7-9f84-bd2e474a3916
+
+	/// KPI card display of [EBIT] in compact units
+	measure 'Card EBIT' = [EBIT]
+		formatString: \$0,,.00"M";-\$0,,.00"M"
+		displayFolder: 10 Cards
+		lineageTag: 3cb38fb5-50f1-4da8-9753-3fbddbe6fc43
+
+	/// KPI card display of [Net Profit] in compact units
+	measure 'Card Net Profit' = [Net Profit]
+		formatString: \$0,,.00"M";-\$0,,.00"M"
+		displayFolder: 10 Cards
+		lineageTag: 26d4a6b5-f978-4387-bc2e-8fcd48e70887
+
+	/// KPI card display of [Total COGS] in compact units
+	measure 'Card COGS' = [Total COGS]
+		formatString: \$0,,.00"M";-\$0,,.00"M"
+		displayFolder: 10 Cards
+		lineageTag: 63640747-22a2-4e06-9518-169dbb0576f1
+
+	/// KPI card display of [Labor Cost] in compact units
+	measure 'Card Labor' = [Labor Cost]
+		formatString: \$0,,.00"M";-\$0,,.00"M"
+		displayFolder: 10 Cards
+		lineageTag: c4fc51d0-9ff0-4962-9343-8943cfaf4aa4
+
+	/// KPI card display of [Monthly Break-even Revenue] in compact units
+	measure 'Card Break-even Month' = [Monthly Break-even Revenue]
+		formatString: \$0,,.00"M";-\$0,,.00"M"
+		displayFolder: 10 Cards
+		lineageTag: d6851732-051f-41eb-8991-331c83e021e9
+
+	/// KPI card display of [Avg Monthly Revenue] in compact units
+	measure 'Card Avg Revenue' = [Avg Monthly Revenue]
+		formatString: \$0,,.00"M";-\$0,,.00"M"
+		displayFolder: 10 Cards
+		lineageTag: 0e6cf667-148d-4d9b-9ebd-51738b4b4a6e
+
+	/// Month-over-month change of [Gross Profit] (percent); single month only
+	measure 'Gross Profit MoM %' =
+			VAR _cur = [Gross Profit]
+			VAR _pm = CALCULATE ( [Gross Profit], DATEADD ( dim_calendar[Date], -1, MONTH ) )
+			RETURN IF ( HASONEVALUE ( dim_calendar[Month] ) && NOT ISBLANK ( _pm ), DIVIDE ( _cur - _pm, ABS ( _pm ) ) )
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: 04 Time
+		lineageTag: ec5640c2-af10-4e12-b000-5eac48f95831
+
+	/// Month-over-month change of [EBIT] (percent); single month only
+	measure 'EBIT MoM %' =
+			VAR _cur = [EBIT]
+			VAR _pm = CALCULATE ( [EBIT], DATEADD ( dim_calendar[Date], -1, MONTH ) )
+			RETURN IF ( HASONEVALUE ( dim_calendar[Month] ) && NOT ISBLANK ( _pm ), DIVIDE ( _cur - _pm, ABS ( _pm ) ) )
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: 04 Time
+		lineageTag: 83512578-d6c0-43c5-ab19-491b90def328
+
+	/// Month-over-month change of [Total COGS] (percent); single month only
+	measure 'COGS MoM %' =
+			VAR _cur = [Total COGS]
+			VAR _pm = CALCULATE ( [Total COGS], DATEADD ( dim_calendar[Date], -1, MONTH ) )
+			RETURN IF ( HASONEVALUE ( dim_calendar[Month] ) && NOT ISBLANK ( _pm ), DIVIDE ( _cur - _pm, ABS ( _pm ) ) )
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: 04 Time
+		lineageTag: 1e37eebd-0c3d-460b-b075-a58b7bcb015e
+
+	/// Month-over-month change of [Labor Cost] (percent); single month only
+	measure 'Labor MoM %' =
+			VAR _cur = [Labor Cost]
+			VAR _pm = CALCULATE ( [Labor Cost], DATEADD ( dim_calendar[Date], -1, MONTH ) )
+			RETURN IF ( HASONEVALUE ( dim_calendar[Month] ) && NOT ISBLANK ( _pm ), DIVIDE ( _cur - _pm, ABS ( _pm ) ) )
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: 04 Time
+		lineageTag: 6e30a4a9-9e4e-49bc-be7c-900d6b2fb2df
+
+	/// Month-over-month change of [Net Profit Margin %] (percentage points); single month only
+	measure 'Net Margin MoM pp' =
+			VAR _cur = [Net Profit Margin %]
+			VAR _pm = CALCULATE ( [Net Profit Margin %], DATEADD ( dim_calendar[Date], -1, MONTH ) )
+			RETURN IF ( HASONEVALUE ( dim_calendar[Month] ) && NOT ISBLANK ( _pm ), _cur - _pm )
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: 04 Time
+		lineageTag: 43a206bb-bbd6-45d7-9aa2-64d07c0602c5
+
+	/// Month-over-month change of [Opex Ratio %] (percentage points); single month only
+	measure 'Opex Ratio MoM pp' =
+			VAR _cur = [Opex Ratio %]
+			VAR _pm = CALCULATE ( [Opex Ratio %], DATEADD ( dim_calendar[Date], -1, MONTH ) )
+			RETURN IF ( HASONEVALUE ( dim_calendar[Month] ) && NOT ISBLANK ( _pm ), _cur - _pm )
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: 04 Time
+		lineageTag: 0d0cb322-512b-4aa6-af3e-b1661bdaed0b
+
+	/// Column colour for Revenue MoM % mini chart (increase is good)
+	measure 'Revenue MoM Color' =
+			VAR _c = [Revenue MoM %]
+			RETURN IF ( ISBLANK ( _c ), "#B8C2D3", IF ( _c >= 0, "#2A9D8F", "#C8553D" ) )
+		displayFolder: 08 Display
+		lineageTag: eafa0f8b-bd63-48d0-a0af-8f6b07ef8f03
+
+	/// Column colour for Gross Profit MoM % mini chart (increase is good)
+	measure 'Gross Profit MoM Color' =
+			VAR _c = [Gross Profit MoM %]
+			RETURN IF ( ISBLANK ( _c ), "#B8C2D3", IF ( _c >= 0, "#2A9D8F", "#C8553D" ) )
+		displayFolder: 08 Display
+		lineageTag: e320a167-2f91-44e7-b48b-b3e1a52994a2
+
+	/// Column colour for Opex MoM % mini chart (increase is bad)
+	measure 'Opex MoM Color' =
+			VAR _c = [Opex MoM %]
+			RETURN IF ( ISBLANK ( _c ), "#B8C2D3", IF ( _c >= 0, "#C8553D", "#2A9D8F" ) )
+		displayFolder: 08 Display
+		lineageTag: 642d4957-a97d-417a-971e-464bf3c10df7
+
+	/// Column colour for EBIT MoM % mini chart (increase is good)
+	measure 'EBIT MoM Color' =
+			VAR _c = [EBIT MoM %]
+			RETURN IF ( ISBLANK ( _c ), "#B8C2D3", IF ( _c >= 0, "#2A9D8F", "#C8553D" ) )
+		displayFolder: 08 Display
+		lineageTag: 9305cb83-7bf1-49b4-9001-b3a266887060
+
+	/// Column colour for Net Profit MoM % mini chart (increase is good)
+	measure 'Net Profit MoM Color' =
+			VAR _c = [Net Profit MoM %]
+			RETURN IF ( ISBLANK ( _c ), "#B8C2D3", IF ( _c >= 0, "#2A9D8F", "#C8553D" ) )
+		displayFolder: 08 Display
+		lineageTag: 3efe1220-0056-4686-ac0e-37683d390b06
+
+	/// Column colour for Net Margin MoM pp mini chart (increase is good)
+	measure 'Net Margin MoM Color' =
+			VAR _c = [Net Margin MoM pp]
+			RETURN IF ( ISBLANK ( _c ), "#B8C2D3", IF ( _c >= 0, "#2A9D8F", "#C8553D" ) )
+		displayFolder: 08 Display
+		lineageTag: a5caf1be-bfcd-49eb-b2bc-ef920ac01e09
+
+	/// Column colour for COGS MoM % mini chart (increase is bad)
+	measure 'COGS MoM Color' =
+			VAR _c = [COGS MoM %]
+			RETURN IF ( ISBLANK ( _c ), "#B8C2D3", IF ( _c >= 0, "#C8553D", "#2A9D8F" ) )
+		displayFolder: 08 Display
+		lineageTag: 5aa6a893-7d81-47ff-9a0d-5c46d79eb0c1
+
+	/// Column colour for Opex Ratio MoM pp mini chart (increase is bad)
+	measure 'Opex Ratio MoM Color' =
+			VAR _c = [Opex Ratio MoM pp]
+			RETURN IF ( ISBLANK ( _c ), "#B8C2D3", IF ( _c >= 0, "#C8553D", "#2A9D8F" ) )
+		displayFolder: 08 Display
+		lineageTag: 01dd1155-f263-4a1f-a03a-a8119ae7ad16
+
+	/// Column colour for Labor MoM % mini chart (increase is bad)
+	measure 'Labor MoM Color' =
+			VAR _c = [Labor MoM %]
+			RETURN IF ( ISBLANK ( _c ), "#B8C2D3", IF ( _c >= 0, "#C8553D", "#2A9D8F" ) )
+		displayFolder: 08 Display
+		lineageTag: 2a73debb-bae0-4e80-b891-2ba67b42ac80
+
+	/// Actual value of the scorecard metric in dim_metric
+	measure 'Scorecard Actual' = SWITCH ( SELECTEDVALUE ( dim_metric[Order] ), 1, [Gross Profit Margin %], 2, [Opex Ratio %], 3, [EBIT Margin %], 4, [Net Profit Margin %] )
+		formatString: 0.00%;-0.00%;0.00%
+		displayFolder: 09 Benchmark
+		lineageTag: 552c9fd2-7cf2-4d70-afc8-59271269592b
+
+	/// Industry benchmark of the scorecard metric
+	measure 'Scorecard Industry' = SWITCH ( SELECTEDVALUE ( dim_metric[Order] ), 1, [Benchmark Gross Margin], 2, [Benchmark Opex Ratio], 3, [Benchmark EBIT Margin], 4, [Benchmark Net Margin] )
+		formatString: 0.00%;-0.00%;0.00%
+		displayFolder: 09 Benchmark
+		lineageTag: 0d9802b6-afa1-46b6-922a-e8d6255c6fea
+
+	/// Actual minus industry, in percentage points
+	measure 'Scorecard Gap' =
+			VAR _a = [Scorecard Actual]
+			VAR _b = [Scorecard Industry]
+			RETURN IF ( NOT ISBLANK ( _a ) && NOT ISBLANK ( _b ), ( _a - _b ) * 100 )
+		formatString: 0.00
+		displayFolder: 09 Benchmark
+		lineageTag: c84f0f76-6298-4ae4-8ac3-b12dee36c876
+
+	/// Teal when the line beats industry (lower is better for Opex ratio)
+	measure 'Scorecard Gap Color' =
+			VAR _g = [Scorecard Gap]
+			VAR _lowerBetter = SELECTEDVALUE ( dim_metric[Order] ) = 2
+			RETURN IF ( ISBLANK ( _g ), "#5A6478", IF ( ( _g >= 0 && NOT _lowerBetter ) || ( _g <= 0 && _lowerBetter ), "#2A9D8F", "#C8553D" ) )
+		displayFolder: 09 Benchmark
+		lineageTag: 6b42af3d-5c6f-427e-9664-b005e52a9ab6
+
+	/// Compound monthly growth rate Jan to Dec FY2023 (linear fallback when Jan or Dec is not positive), plus count of months that rose vs the prior month. Ignores the Month slicer.
+	measure 'Revenue FY Trend Label' =
+			VAR _f = CALCULATE ( [Total Revenue], REMOVEFILTERS ( dim_calendar ), dim_calendar[Month] = 1 )
+			VAR _l = CALCULATE ( [Total Revenue], REMOVEFILTERS ( dim_calendar ), dim_calendar[Month] = 12 )
+			VAR _rate = IF ( _f > 0 && _l > 0, POWER ( DIVIDE ( _l, _f ), 1 / 11 ) - 1, DIVIDE ( _l - _f, ABS ( _f ) ) / 11 )
+			VAR _ups = CALCULATE ( COUNTROWS ( FILTER ( VALUES ( dim_calendar[Month] ), [Revenue MoM %] > 0 ) ), REMOVEFILTERS ( dim_calendar ) )
+			RETURN
+			    IF ( ISBLANK ( _f ) || ISBLANK ( _l ), BLANK (),
+			        "Jan→Dec " & IF ( _rate >= 0, "▲ ", "▼ " ) & FORMAT ( ABS ( _rate ), "0.0%" ) & "/mo · " & COALESCE ( _ups, 0 ) & "/11 up" )
+		displayFolder: 04 Time
+		lineageTag: 5d327f2b-070b-4a60-a9ac-432e4c062eae
+
+	/// Grey when the FY2023 Revenue Jan-to-Dec trend moves less than 0.5%/mo; otherwise green when favourable (rising), red when not
+	measure 'Revenue FY Trend Color' =
+			VAR _f = CALCULATE ( [Total Revenue], REMOVEFILTERS ( dim_calendar ), dim_calendar[Month] = 1 )
+			VAR _l = CALCULATE ( [Total Revenue], REMOVEFILTERS ( dim_calendar ), dim_calendar[Month] = 12 )
+			VAR _rate = IF ( _f > 0 && _l > 0, POWER ( DIVIDE ( _l, _f ), 1 / 11 ) - 1, DIVIDE ( _l - _f, ABS ( _f ) ) / 11 )
+			RETURN
+			    SWITCH ( TRUE (), ISBLANK ( _f ) || ISBLANK ( _l ), "#5A6478",
+			        ABS ( _rate ) < 0.005, "#5A6478",
+			        _rate >= 0, "#2A9D8F", "#C8553D" )
+		displayFolder: 08 Display
+		lineageTag: 77ba9305-e007-48c8-a54d-e9854ec5a23a
+
+	/// Compound monthly growth rate Jan to Dec FY2023 (linear fallback when Jan or Dec is not positive), plus count of months that rose vs the prior month. Ignores the Month slicer.
+	measure 'Gross Profit FY Trend Label' =
+			VAR _f = CALCULATE ( [Gross Profit], REMOVEFILTERS ( dim_calendar ), dim_calendar[Month] = 1 )
+			VAR _l = CALCULATE ( [Gross Profit], REMOVEFILTERS ( dim_calendar ), dim_calendar[Month] = 12 )
+			VAR _rate = IF ( _f > 0 && _l > 0, POWER ( DIVIDE ( _l, _f ), 1 / 11 ) - 1, DIVIDE ( _l - _f, ABS ( _f ) ) / 11 )
+			VAR _ups = CALCULATE ( COUNTROWS ( FILTER ( VALUES ( dim_calendar[Month] ), [Gross Profit MoM %] > 0 ) ), REMOVEFILTERS ( dim_calendar ) )
+			RETURN
+			    IF ( ISBLANK ( _f ) || ISBLANK ( _l ), BLANK (),
+			        "Jan→Dec " & IF ( _rate >= 0, "▲ ", "▼ " ) & FORMAT ( ABS ( _rate ), "0.0%" ) & "/mo · " & COALESCE ( _ups, 0 ) & "/11 up" )
+		displayFolder: 04 Time
+		lineageTag: 032a37dc-2e28-4eb4-a992-9c38bd6220da
+
+	/// Grey when the FY2023 Gross Profit Jan-to-Dec trend moves less than 0.5%/mo; otherwise green when favourable (rising), red when not
+	measure 'Gross Profit FY Trend Color' =
+			VAR _f = CALCULATE ( [Gross Profit], REMOVEFILTERS ( dim_calendar ), dim_calendar[Month] = 1 )
+			VAR _l = CALCULATE ( [Gross Profit], REMOVEFILTERS ( dim_calendar ), dim_calendar[Month] = 12 )
+			VAR _rate = IF ( _f > 0 && _l > 0, POWER ( DIVIDE ( _l, _f ), 1 / 11 ) - 1, DIVIDE ( _l - _f, ABS ( _f ) ) / 11 )
+			RETURN
+			    SWITCH ( TRUE (), ISBLANK ( _f ) || ISBLANK ( _l ), "#5A6478",
+			        ABS ( _rate ) < 0.005, "#5A6478",
+			        _rate >= 0, "#2A9D8F", "#C8553D" )
+		displayFolder: 08 Display
+		lineageTag: 19a29f4f-e293-44b2-81c7-fb1e0802f3b5
+
+	/// Compound monthly growth rate Jan to Dec FY2023 (linear fallback when Jan or Dec is not positive), plus count of months that rose vs the prior month. Ignores the Month slicer.
+	measure 'Opex FY Trend Label' =
+			VAR _f = CALCULATE ( [Total Opex], REMOVEFILTERS ( dim_calendar ), dim_calendar[Month] = 1 )
+			VAR _l = CALCULATE ( [Total Opex], REMOVEFILTERS ( dim_calendar ), dim_calendar[Month] = 12 )
+			VAR _rate = IF ( _f > 0 && _l > 0, POWER ( DIVIDE ( _l, _f ), 1 / 11 ) - 1, DIVIDE ( _l - _f, ABS ( _f ) ) / 11 )
+			VAR _ups = CALCULATE ( COUNTROWS ( FILTER ( VALUES ( dim_calendar[Month] ), [Opex MoM %] > 0 ) ), REMOVEFILTERS ( dim_calendar ) )
+			RETURN
+			    IF ( ISBLANK ( _f ) || ISBLANK ( _l ), BLANK (),
+			        "Jan→Dec " & IF ( _rate >= 0, "▲ ", "▼ " ) & FORMAT ( ABS ( _rate ), "0.0%" ) & "/mo · " & COALESCE ( _ups, 0 ) & "/11 up" )
+		displayFolder: 04 Time
+		lineageTag: e25bb3a6-7ed2-4133-a14a-0bec46a3aba8
+
+	/// Grey when the FY2023 Opex Jan-to-Dec trend moves less than 0.5%/mo; otherwise green when favourable (falling), red when not
+	measure 'Opex FY Trend Color' =
+			VAR _f = CALCULATE ( [Total Opex], REMOVEFILTERS ( dim_calendar ), dim_calendar[Month] = 1 )
+			VAR _l = CALCULATE ( [Total Opex], REMOVEFILTERS ( dim_calendar ), dim_calendar[Month] = 12 )
+			VAR _rate = IF ( _f > 0 && _l > 0, POWER ( DIVIDE ( _l, _f ), 1 / 11 ) - 1, DIVIDE ( _l - _f, ABS ( _f ) ) / 11 )
+			RETURN
+			    SWITCH ( TRUE (), ISBLANK ( _f ) || ISBLANK ( _l ), "#5A6478",
+			        ABS ( _rate ) < 0.005, "#5A6478",
+			        _rate <= 0, "#2A9D8F", "#C8553D" )
+		displayFolder: 08 Display
+		lineageTag: 4c151ad4-1b07-497f-85c2-6cb018f1f8bd
+
+	/// Compound monthly growth rate Jan to Dec FY2023 (linear fallback when Jan or Dec is not positive), plus count of months that rose vs the prior month. Ignores the Month slicer.
+	measure 'EBIT FY Trend Label' =
+			VAR _f = CALCULATE ( [EBIT], REMOVEFILTERS ( dim_calendar ), dim_calendar[Month] = 1 )
+			VAR _l = CALCULATE ( [EBIT], REMOVEFILTERS ( dim_calendar ), dim_calendar[Month] = 12 )
+			VAR _rate = IF ( _f > 0 && _l > 0, POWER ( DIVIDE ( _l, _f ), 1 / 11 ) - 1, DIVIDE ( _l - _f, ABS ( _f ) ) / 11 )
+			VAR _ups = CALCULATE ( COUNTROWS ( FILTER ( VALUES ( dim_calendar[Month] ), [EBIT MoM %] > 0 ) ), REMOVEFILTERS ( dim_calendar ) )
+			RETURN
+			    IF ( ISBLANK ( _f ) || ISBLANK ( _l ), BLANK (),
+			        "Jan→Dec " & IF ( _rate >= 0, "▲ ", "▼ " ) & FORMAT ( ABS ( _rate ), "0.0%" ) & "/mo · " & COALESCE ( _ups, 0 ) & "/11 up" )
+		displayFolder: 04 Time
+		lineageTag: 0f28cfbb-f723-46a0-8dc5-e21d3a300bf4
+
+	/// Grey when the FY2023 EBIT Jan-to-Dec trend moves less than 0.5%/mo; otherwise green when favourable (rising), red when not
+	measure 'EBIT FY Trend Color' =
+			VAR _f = CALCULATE ( [EBIT], REMOVEFILTERS ( dim_calendar ), dim_calendar[Month] = 1 )
+			VAR _l = CALCULATE ( [EBIT], REMOVEFILTERS ( dim_calendar ), dim_calendar[Month] = 12 )
+			VAR _rate = IF ( _f > 0 && _l > 0, POWER ( DIVIDE ( _l, _f ), 1 / 11 ) - 1, DIVIDE ( _l - _f, ABS ( _f ) ) / 11 )
+			RETURN
+			    SWITCH ( TRUE (), ISBLANK ( _f ) || ISBLANK ( _l ), "#5A6478",
+			        ABS ( _rate ) < 0.005, "#5A6478",
+			        _rate >= 0, "#2A9D8F", "#C8553D" )
+		displayFolder: 08 Display
+		lineageTag: 7982238a-16f9-4b2c-82c8-1508356bd796
+
+	/// Compound monthly growth rate Jan to Dec FY2023 (linear fallback when Jan or Dec is not positive), plus count of months that rose vs the prior month. Ignores the Month slicer.
+	measure 'Net Profit FY Trend Label' =
+			VAR _f = CALCULATE ( [Net Profit], REMOVEFILTERS ( dim_calendar ), dim_calendar[Month] = 1 )
+			VAR _l = CALCULATE ( [Net Profit], REMOVEFILTERS ( dim_calendar ), dim_calendar[Month] = 12 )
+			VAR _rate = IF ( _f > 0 && _l > 0, POWER ( DIVIDE ( _l, _f ), 1 / 11 ) - 1, DIVIDE ( _l - _f, ABS ( _f ) ) / 11 )
+			VAR _ups = CALCULATE ( COUNTROWS ( FILTER ( VALUES ( dim_calendar[Month] ), [Net Profit MoM %] > 0 ) ), REMOVEFILTERS ( dim_calendar ) )
+			RETURN
+			    IF ( ISBLANK ( _f ) || ISBLANK ( _l ), BLANK (),
+			        "Jan→Dec " & IF ( _rate >= 0, "▲ ", "▼ " ) & FORMAT ( ABS ( _rate ), "0.0%" ) & "/mo · " & COALESCE ( _ups, 0 ) & "/11 up" )
+		displayFolder: 04 Time
+		lineageTag: 901c0fec-957f-4345-a9d2-7abc31ba0711
+
+	/// Grey when the FY2023 Net Profit Jan-to-Dec trend moves less than 0.5%/mo; otherwise green when favourable (rising), red when not
+	measure 'Net Profit FY Trend Color' =
+			VAR _f = CALCULATE ( [Net Profit], REMOVEFILTERS ( dim_calendar ), dim_calendar[Month] = 1 )
+			VAR _l = CALCULATE ( [Net Profit], REMOVEFILTERS ( dim_calendar ), dim_calendar[Month] = 12 )
+			VAR _rate = IF ( _f > 0 && _l > 0, POWER ( DIVIDE ( _l, _f ), 1 / 11 ) - 1, DIVIDE ( _l - _f, ABS ( _f ) ) / 11 )
+			RETURN
+			    SWITCH ( TRUE (), ISBLANK ( _f ) || ISBLANK ( _l ), "#5A6478",
+			        ABS ( _rate ) < 0.005, "#5A6478",
+			        _rate >= 0, "#2A9D8F", "#C8553D" )
+		displayFolder: 08 Display
+		lineageTag: 55ce6ce7-81b3-45d6-836e-7bb1e7e0e5a6
+
+	/// Average monthly change in percentage points, Jan to Dec FY2023, plus count of months that rose vs the prior month. Ignores the Month slicer.
+	measure 'Net Margin FY Trend Label' =
+			VAR _f = CALCULATE ( [Net Profit Margin %], REMOVEFILTERS ( dim_calendar ), dim_calendar[Month] = 1 )
+			VAR _l = CALCULATE ( [Net Profit Margin %], REMOVEFILTERS ( dim_calendar ), dim_calendar[Month] = 12 )
+			VAR _rate = ( _l - _f ) / 11
+			VAR _ups = CALCULATE ( COUNTROWS ( FILTER ( VALUES ( dim_calendar[Month] ), [Net Margin MoM pp] > 0 ) ), REMOVEFILTERS ( dim_calendar ) )
+			RETURN
+			    IF ( ISBLANK ( _f ) || ISBLANK ( _l ), BLANK (),
+			        "Jan→Dec " & IF ( _rate >= 0, "▲ ", "▼ " ) & FORMAT ( ABS ( _rate ) * 100, "0.00" ) & " pp/mo · " & COALESCE ( _ups, 0 ) & "/11 up" )
+		displayFolder: 04 Time
+		lineageTag: c439a659-8f71-497b-85a5-28e7c4610d49
+
+	/// Grey when the FY2023 Net Margin Jan-to-Dec trend moves less than 0.25 pp/mo; otherwise green when favourable (rising), red when not
+	measure 'Net Margin FY Trend Color' =
+			VAR _f = CALCULATE ( [Net Profit Margin %], REMOVEFILTERS ( dim_calendar ), dim_calendar[Month] = 1 )
+			VAR _l = CALCULATE ( [Net Profit Margin %], REMOVEFILTERS ( dim_calendar ), dim_calendar[Month] = 12 )
+			VAR _rate = ( _l - _f ) / 11
+			RETURN
+			    SWITCH ( TRUE (), ISBLANK ( _f ) || ISBLANK ( _l ), "#5A6478",
+			        ABS ( _rate ) < 0.0025, "#5A6478",
+			        _rate >= 0, "#2A9D8F", "#C8553D" )
+		displayFolder: 08 Display
+		lineageTag: a989032b-08f7-4e40-a947-f6abd4daa5e9
+
+	/// Compound monthly growth rate Jan to Dec FY2023 (linear fallback when Jan or Dec is not positive), plus count of months that rose vs the prior month. Ignores the Month slicer.
+	measure 'COGS FY Trend Label' =
+			VAR _f = CALCULATE ( [Total COGS], REMOVEFILTERS ( dim_calendar ), dim_calendar[Month] = 1 )
+			VAR _l = CALCULATE ( [Total COGS], REMOVEFILTERS ( dim_calendar ), dim_calendar[Month] = 12 )
+			VAR _rate = IF ( _f > 0 && _l > 0, POWER ( DIVIDE ( _l, _f ), 1 / 11 ) - 1, DIVIDE ( _l - _f, ABS ( _f ) ) / 11 )
+			VAR _ups = CALCULATE ( COUNTROWS ( FILTER ( VALUES ( dim_calendar[Month] ), [COGS MoM %] > 0 ) ), REMOVEFILTERS ( dim_calendar ) )
+			RETURN
+			    IF ( ISBLANK ( _f ) || ISBLANK ( _l ), BLANK (),
+			        "Jan→Dec " & IF ( _rate >= 0, "▲ ", "▼ " ) & FORMAT ( ABS ( _rate ), "0.0%" ) & "/mo · " & COALESCE ( _ups, 0 ) & "/11 up" )
+		displayFolder: 04 Time
+		lineageTag: 8bb68c9b-1f30-4124-9a93-ff0d5b58b46c
+
+	/// Grey when the FY2023 COGS Jan-to-Dec trend moves less than 0.5%/mo; otherwise green when favourable (falling), red when not
+	measure 'COGS FY Trend Color' =
+			VAR _f = CALCULATE ( [Total COGS], REMOVEFILTERS ( dim_calendar ), dim_calendar[Month] = 1 )
+			VAR _l = CALCULATE ( [Total COGS], REMOVEFILTERS ( dim_calendar ), dim_calendar[Month] = 12 )
+			VAR _rate = IF ( _f > 0 && _l > 0, POWER ( DIVIDE ( _l, _f ), 1 / 11 ) - 1, DIVIDE ( _l - _f, ABS ( _f ) ) / 11 )
+			RETURN
+			    SWITCH ( TRUE (), ISBLANK ( _f ) || ISBLANK ( _l ), "#5A6478",
+			        ABS ( _rate ) < 0.005, "#5A6478",
+			        _rate <= 0, "#2A9D8F", "#C8553D" )
+		displayFolder: 08 Display
+		lineageTag: 40c543e1-cc90-416d-9e47-b33e1874efe2
+
+	/// Average monthly change in percentage points, Jan to Dec FY2023, plus count of months that rose vs the prior month. Ignores the Month slicer.
+	measure 'Opex Ratio FY Trend Label' =
+			VAR _f = CALCULATE ( [Opex Ratio %], REMOVEFILTERS ( dim_calendar ), dim_calendar[Month] = 1 )
+			VAR _l = CALCULATE ( [Opex Ratio %], REMOVEFILTERS ( dim_calendar ), dim_calendar[Month] = 12 )
+			VAR _rate = ( _l - _f ) / 11
+			VAR _ups = CALCULATE ( COUNTROWS ( FILTER ( VALUES ( dim_calendar[Month] ), [Opex Ratio MoM pp] > 0 ) ), REMOVEFILTERS ( dim_calendar ) )
+			RETURN
+			    IF ( ISBLANK ( _f ) || ISBLANK ( _l ), BLANK (),
+			        "Jan→Dec " & IF ( _rate >= 0, "▲ ", "▼ " ) & FORMAT ( ABS ( _rate ) * 100, "0.00" ) & " pp/mo · " & COALESCE ( _ups, 0 ) & "/11 up" )
+		displayFolder: 04 Time
+		lineageTag: 1e606346-8a2b-4905-ba1c-9afc7f1d5428
+
+	/// Grey when the FY2023 Opex Ratio Jan-to-Dec trend moves less than 0.25 pp/mo; otherwise green when favourable (falling), red when not
+	measure 'Opex Ratio FY Trend Color' =
+			VAR _f = CALCULATE ( [Opex Ratio %], REMOVEFILTERS ( dim_calendar ), dim_calendar[Month] = 1 )
+			VAR _l = CALCULATE ( [Opex Ratio %], REMOVEFILTERS ( dim_calendar ), dim_calendar[Month] = 12 )
+			VAR _rate = ( _l - _f ) / 11
+			RETURN
+			    SWITCH ( TRUE (), ISBLANK ( _f ) || ISBLANK ( _l ), "#5A6478",
+			        ABS ( _rate ) < 0.0025, "#5A6478",
+			        _rate <= 0, "#2A9D8F", "#C8553D" )
+		displayFolder: 08 Display
+		lineageTag: 3f3980aa-1217-4dd0-bf80-b77ad1b8f020
+
+	/// Compound monthly growth rate Jan to Dec FY2023 (linear fallback when Jan or Dec is not positive), plus count of months that rose vs the prior month. Ignores the Month slicer.
+	measure 'Labor FY Trend Label' =
+			VAR _f = CALCULATE ( [Labor Cost], REMOVEFILTERS ( dim_calendar ), dim_calendar[Month] = 1 )
+			VAR _l = CALCULATE ( [Labor Cost], REMOVEFILTERS ( dim_calendar ), dim_calendar[Month] = 12 )
+			VAR _rate = IF ( _f > 0 && _l > 0, POWER ( DIVIDE ( _l, _f ), 1 / 11 ) - 1, DIVIDE ( _l - _f, ABS ( _f ) ) / 11 )
+			VAR _ups = CALCULATE ( COUNTROWS ( FILTER ( VALUES ( dim_calendar[Month] ), [Labor MoM %] > 0 ) ), REMOVEFILTERS ( dim_calendar ) )
+			RETURN
+			    IF ( ISBLANK ( _f ) || ISBLANK ( _l ), BLANK (),
+			        "Jan→Dec " & IF ( _rate >= 0, "▲ ", "▼ " ) & FORMAT ( ABS ( _rate ), "0.0%" ) & "/mo · " & COALESCE ( _ups, 0 ) & "/11 up" )
+		displayFolder: 04 Time
+		lineageTag: 94f84213-c961-4275-b5f4-b032a96d3dd3
+
+	/// Grey when the FY2023 Labor Jan-to-Dec trend moves less than 0.5%/mo; otherwise green when favourable (falling), red when not
+	measure 'Labor FY Trend Color' =
+			VAR _f = CALCULATE ( [Labor Cost], REMOVEFILTERS ( dim_calendar ), dim_calendar[Month] = 1 )
+			VAR _l = CALCULATE ( [Labor Cost], REMOVEFILTERS ( dim_calendar ), dim_calendar[Month] = 12 )
+			VAR _rate = IF ( _f > 0 && _l > 0, POWER ( DIVIDE ( _l, _f ), 1 / 11 ) - 1, DIVIDE ( _l - _f, ABS ( _f ) ) / 11 )
+			RETURN
+			    SWITCH ( TRUE (), ISBLANK ( _f ) || ISBLANK ( _l ), "#5A6478",
+			        ABS ( _rate ) < 0.005, "#5A6478",
+			        _rate <= 0, "#2A9D8F", "#C8553D" )
+		displayFolder: 08 Display
+		lineageTag: c6b1c2b9-de39-4097-9efc-cce433da8a50
+
+	/// P&L page header insight: where each revenue dollar goes
+	measure 'Takeaway P&L' = "COGS takes " & FORMAT ( [COGS Ratio %], "0.0%" ) & " of revenue and opex " & FORMAT ( [Opex Ratio %], "0.0%" ) & ", leaving a " & FORMAT ( [Net Profit Margin %], "0.0%" ) & " net margin"
+		displayFolder: 08 Display
+		lineageTag: 828001ee-4d65-4977-892e-bfdce546ebed
+
+	/// Business Lines page header insight: profit concentration and the loss-making line
+	measure 'Takeaway Lines' =
+			VAR _t = ADDCOLUMNS ( VALUES ( dim_business_line[Business Line] ), "@np", [Net Profit], "@rev", [Total Revenue] )
+			VAR _np = SUMX ( _t, [@np] )
+			VAR _rev = SUMX ( _t, [@rev] )
+			VAR _top = TOPN ( 1, _t, [@np], DESC )
+			VAR _low = TOPN ( 1, _t, [@np], ASC )
+			VAR _lowNp = MAXX ( _low, [@np] )
+			RETURN
+			    IF ( COUNTROWS ( _t ) < 2,
+			        MAXX ( _t, dim_business_line[Business Line] ) & ": net margin " & FORMAT ( [Net Profit Margin %], "0.0%" ),
+			        MAXX ( _top, dim_business_line[Business Line] ) & " earns " & FORMAT ( DIVIDE ( MAXX ( _top, [@np] ), _np ), "0%" ) & " of net profit on "
+			            & FORMAT ( DIVIDE ( MAXX ( _top, [@rev] ), _rev ), "0%" ) & " of revenue"
+			            & IF ( _lowNp < 0, "; " & SUBSTITUTE ( MAXX ( _low, dim_business_line[Business Line] ), " and Food Supplements", "" ) & " loses $" & FORMAT ( -_lowNp / 1000000, "0.00" ) & "M", "" ) )
+		displayFolder: 08 Display
+		lineageTag: 14bc3b71-c42a-4574-9348-554458e70300
+
+	/// Cost page header insight: the single largest cost line
+	measure 'Takeaway Cost' =
+			VAR _t = ADDCOLUMNS ( VALUES ( dim_subgroup[Subgroup] ), "@c", [Total COGS] + [Total Opex] )
+			VAR _top = TOPN ( 1, _t, [@c], DESC )
+			VAR _c = MAXX ( _top, [@c] )
+			RETURN
+			    MAXX ( _top, dim_subgroup[Subgroup] ) & " is the largest cost line at $" & FORMAT ( _c / 1000000, "0.00" ) & "M, "
+			        & FORMAT ( DIVIDE ( _c, [Total Revenue] ), "0.0%" ) & " of revenue"
+		displayFolder: 08 Display
+		lineageTag: 40242686-c990-47bc-8cc1-1dfe78aa5e66
+
+	/// Break-even page header insight: the month closest to break-even
+	measure 'Takeaway Break-even' =
+			VAR _t = ADDCOLUMNS ( SUMMARIZE ( fact_financial, dim_calendar[Month], dim_calendar[Month in text] ), "@ms", [Margin of Safety %] )
+			VAR _low = TOPN ( 1, _t, [@ms], ASC )
+			VAR _ms = MAXX ( _low, [@ms] )
+			VAR _txt = IF ( _ms >= 0, "revenue only " & FORMAT ( _ms, "0.0%" ) & " above break-even", "revenue " & FORMAT ( -_ms, "0.0%" ) & " below break-even" )
+			RETURN
+			    IF ( COUNTROWS ( _t ) < 2,
+			        UPPER ( LEFT ( _txt, 1 ) ) & MID ( _txt, 2, 200 ),
+			        "Tightest month: " & MAXX ( _low, dim_calendar[Month in text] ) & ", " & _txt )
+		displayFolder: 08 Display
+		lineageTag: f8692548-3d80-4cac-840d-619d898b16a8
+
+	/// Benchmark page header insight: how many lines beat their industry net margin
+	measure 'Takeaway Benchmark' =
+			VAR _t = ADDCOLUMNS ( VALUES ( dim_business_line[Business Line] ), "@gap", [Net Margin Gap vs Benchmark] )
+			VAR _n = COALESCE ( COUNTROWS ( FILTER ( _t, [@gap] > 0 ) ), 0 )
+			VAR _low = TOPN ( 1, _t, [@gap], ASC )
+			VAR _gap = MAXX ( _low, [@gap] )
+			RETURN
+			    _n & " of " & COUNTROWS ( _t ) & " lines beat their industry net margin"
+			        & IF ( _gap < 0, "; " & SUBSTITUTE ( MAXX ( _low, dim_business_line[Business Line] ), " and Food Supplements", "" ) & " trails by " & FORMAT ( -_gap * 100, "0.0" ) & " pp", "" )
+		displayFolder: 08 Display
+		lineageTag: 74a0902c-a20e-4965-9cc2-e8bbd313c74f
+
+	column _
+		isHidden
+		lineageTag: d59fab06-f042-4ea1-b64a-034487a138d9
+		isNameInferred
+		sourceColumn: [_]
+
+	partition *Measures = calculated
+		mode: import
+		source = ROW("_", BLANK())
+

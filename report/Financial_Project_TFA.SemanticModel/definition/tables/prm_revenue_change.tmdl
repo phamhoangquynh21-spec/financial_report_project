@@ -1,0 +1,15 @@
+/// What-if: % change in revenue for break-even scenario
+table prm_revenue_change
+	lineageTag: 666151ab-f780-41f1-aaee-b69240e5f59d
+
+	column Value
+		formatString: +0%;-0%;0%
+		lineageTag: b9f32962-d5db-40c1-97d7-4d17ab039453
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Value]
+
+	partition prm_revenue_change = calculated
+		mode: import
+		source = GENERATESERIES ( -0.30, 0.30, 0.05 )
+

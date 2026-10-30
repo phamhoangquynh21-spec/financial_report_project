@@ -1,0 +1,52 @@
+table dim_headline
+	lineageTag: e0fa24e7-4175-448d-9771-20f948544ba6
+
+	column Order
+		dataType: int64
+		formatString: 0
+		lineageTag: 6f54d00a-c48b-47d0-9320-d2e6043510ac
+		summarizeBy: none
+		sourceColumn: Order
+
+		annotation SummarizationSetBy = Automatic
+
+	column Headline
+		dataType: string
+		lineageTag: 87110071-9b20-404a-83dd-194cf87cf028
+		summarizeBy: none
+		sourceColumn: Headline
+		sortByColumn: Order
+
+		annotation SummarizationSetBy = Automatic
+
+	column Type
+		dataType: int64
+		formatString: 0
+		lineageTag: 008bc560-ce6e-4a9f-a39f-2b33142c66d7
+		summarizeBy: none
+		sourceColumn: Type
+
+		annotation SummarizationSetBy = Automatic
+
+	column Detail
+		dataType: int64
+		formatString: 0
+		lineageTag: 6b7516e5-6063-4f06-bcc1-1eb2fca9a2b1
+		summarizeBy: none
+		sourceColumn: Detail
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_headline = m
+		mode: import
+		source =
+				let
+				  Source = Csv.Document(File.Contents("C:\Users\User\Documents\Financial Data\Headlines.csv"), [Delimiter = ",", Columns = 4, Encoding = 65001, QuoteStyle = QuoteStyle.None]),
+				  #"Promoted headers" = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+				  #"Changed column type" = Table.TransformColumnTypes(#"Promoted headers", {{"Orden", Int64.Type}, {"Headline", type text}, {"Type", Int64.Type}, {"Detail", Int64.Type}}, "en-US"),
+				    #"Renamed Columns" = Table.RenameColumns(#"Changed column type",{{"Orden", "Order"}})
+				in
+				  #"Renamed Columns"
+
+	annotation PBI_ResultType = Table
+

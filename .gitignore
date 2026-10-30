@@ -1,0 +1,13 @@
+# Power BI project: user-specific settings and the local data cache
+**/.pbi/localSettings.json
+**/.pbi/cache.abf
+
+# Raw data is not redistributed
+data/*.csv
+data/*.xlsx
+
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/

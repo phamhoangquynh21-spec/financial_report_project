@@ -1,0 +1,13 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/pagesMetadata/1.1.0/schema.json",
+  "pageOrder": [
+    "7d5907ba0ae627039ad8",
+    "page_overview",
+    "page_pnl",
+    "page_lines",
+    "page_cost",
+    "page_breakeven",
+    "page_benchmark"
+  ],
+  "activePageName": "page_breakeven"
+}

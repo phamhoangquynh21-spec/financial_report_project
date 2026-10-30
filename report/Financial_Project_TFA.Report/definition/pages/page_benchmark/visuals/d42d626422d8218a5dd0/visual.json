@@ -1,0 +1,76 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.14.0/schema.json",
+  "name": "d42d626422d8218a5dd0",
+  "position": {
+    "x": 293.33333333333331,
+    "y": 57.777777777777779,
+    "z": 22000,
+    "height": 50,
+    "width": 944.44444444444446,
+    "tabOrder": 22000
+  },
+  "visual": {
+    "visualType": "textbox",
+    "objects": {
+      "general": [
+        {
+          "properties": {
+            "paragraphs": [
+              {
+                "textRuns": [
+                  {
+                    "value": "Source: Damodaran, Margins by Sector (US), data as of Jan 2026. Nutrition = Food Processing, Sports Equipment = Recreation, Sportswear = Apparel. Opex = SG&A + R&D",
+                    "textStyle": {
+                      "fontFamily": "Segoe UI",
+                      "color": "#5a6478"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "Peers are listed US firms in a later period, so read gaps as direction, not precision.",
+                    "textStyle": {
+                      "fontFamily": "Segoe UI",
+                      "color": "#5a6478"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "subTitle": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

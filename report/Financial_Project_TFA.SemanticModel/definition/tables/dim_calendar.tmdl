@@ -1,0 +1,101 @@
+table dim_calendar
+	lineageTag: 567ab435-a62c-43f4-91f1-4987fdeb79b4
+	dataCategory: Time
+
+	column Date
+		dataType: dateTime
+		isUnique
+		formatString: dd/mm/yyyy
+		lineageTag: 9d5b3202-9dca-49b2-bbb4-d23819bdb9f4
+		summarizeBy: none
+		sourceColumn: Date
+
+		variation Variation
+			isDefault
+			relationship: 306c22ba-6ad4-434a-8758-523d032a3e43
+			defaultHierarchy: LocalDateTable_28e7c4c6-afdc-430f-b0df-747610d48f72.'Date Hierarchy'
+
+		annotation SummarizationSetBy = Automatic
+
+	column Year
+		dataType: int64
+		formatString: 0
+		lineageTag: a269caa2-8127-4537-95e6-39f00c800ac4
+		summarizeBy: none
+		sourceColumn: Year
+
+		annotation SummarizationSetBy = Automatic
+
+	column Quarter
+		dataType: int64
+		formatString: 0
+		lineageTag: d5ead932-9422-4cc1-9b34-cbc024bb4bb4
+		summarizeBy: none
+		sourceColumn: Quarter
+
+		annotation SummarizationSetBy = Automatic
+
+	column Month
+		dataType: int64
+		formatString: 0
+		lineageTag: c4475056-be79-4348-8ea5-3bedbc9ea445
+		summarizeBy: none
+		sourceColumn: Month
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Month in text'
+		dataType: string
+		lineageTag: 4a47bf54-0188-48eb-b0b0-e4df2bed0c0f
+		summarizeBy: none
+		sourceColumn: Month in text
+		sortByColumn: Month
+
+		annotation SummarizationSetBy = Automatic
+
+	column Week
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 559dc24b-8adf-470b-bb91-e008ee30ef37
+		summarizeBy: none
+		sourceColumn: Week
+
+		annotation SummarizationSetBy = Automatic
+
+	column Day
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 3a4e145b-4dde-4679-a2ed-e04daa7d2f84
+		summarizeBy: none
+		sourceColumn: Day
+
+		annotation SummarizationSetBy = Automatic
+
+	/// Three-letter month label for compact chart axes
+	column 'Month Short' = LEFT ( dim_calendar[Month in text], 3 )
+		dataType: string
+		lineageTag: 408b8360-d6b2-4c44-a1d6-6dfbce0508a4
+		summarizeBy: none
+		sortByColumn: Month
+
+	/// Quarter label Q1–Q4
+	column 'Quarter Label' = "Q" & dim_calendar[Quarter]
+		dataType: string
+		lineageTag: 29c04397-2bf3-4746-bbb0-fc0cf9225208
+		summarizeBy: none
+		sortByColumn: Quarter
+
+	partition dim_calendar = m
+		mode: import
+		source =
+				let
+				  Source = Csv.Document(File.Contents("C:\Users\User\Documents\Financial Data\Calendar.csv"), [Delimiter = ",", Columns = 7, Encoding = 65001, QuoteStyle = QuoteStyle.None]),
+				  #"Promoted headers" = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+				  #"Changed column type" = Table.TransformColumnTypes(#"Promoted headers", {{"Date", type datetime}, {"Year", Int64.Type}, {"Quarter", Int64.Type}, {"Month", Int64.Type}, {"Month in text", type text}, {"Week", Int64.Type}, {"Day", Int64.Type}}, "en-US")
+				in
+				  #"Changed column type"
+
+	annotation PBI_ResultType = Table
+

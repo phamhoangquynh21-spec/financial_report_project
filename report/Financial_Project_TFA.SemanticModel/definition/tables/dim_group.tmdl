@@ -1,0 +1,43 @@
+table dim_group
+	lineageTag: ecd59f33-bab5-437b-a621-fcc525b95bd4
+
+	column Order
+		dataType: int64
+		formatString: 0
+		lineageTag: 4675c4ad-df88-4283-aef0-c189f90c51c9
+		summarizeBy: none
+		sourceColumn: Order
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Group ID'
+		dataType: int64
+		formatString: 0
+		lineageTag: 0911539e-5f6c-4efc-9106-e067002d0faf
+		summarizeBy: none
+		sourceColumn: Group ID
+
+		annotation SummarizationSetBy = Automatic
+
+	column Group
+		dataType: string
+		lineageTag: a516a81f-2c25-4148-a497-692a23aa386f
+		summarizeBy: none
+		sourceColumn: Group
+		sortByColumn: Order
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_group = m
+		mode: import
+		source =
+				let
+				  Source = Csv.Document(File.Contents("C:\Users\User\Documents\Financial Data\Group.csv"), [Delimiter = ",", Columns = 3, Encoding = 65001, QuoteStyle = QuoteStyle.None]),
+				  #"Promoted headers" = Table.PromoteHeaders(Source, [PromoteAllScalars = true]),
+				  #"Changed column type" = Table.TransformColumnTypes(#"Promoted headers", {{"Orden", Int64.Type}, {"Group ID", Int64.Type}, {"Group", type text}}, "en-US"),
+				    #"Renamed Columns" = Table.RenameColumns(#"Changed column type",{{"Orden", "Order"}})
+				in
+				  #"Renamed Columns"
+
+	annotation PBI_ResultType = Table
+

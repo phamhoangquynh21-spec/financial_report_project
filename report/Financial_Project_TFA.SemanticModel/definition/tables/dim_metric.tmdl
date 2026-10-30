@@ -1,0 +1,21 @@
+/// Scorecard rows: margin metrics compared with industry benchmarks
+table dim_metric
+	lineageTag: 66b9d0ae-5812-4bd9-81fd-132047db1041
+
+	column Order
+		isHidden
+		lineageTag: dbf4b168-7386-4eac-ad25-7db78def2aa3
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Order]
+
+	column Metric
+		lineageTag: 5f216a5f-6f46-4b10-87e8-7c83ee2d27a6
+		isNameInferred
+		sourceColumn: [Metric]
+		sortByColumn: Order
+
+	partition dim_metric = calculated
+		mode: import
+		source = DATATABLE ( "Order", INTEGER, "Metric", STRING, { { 1, "Gross margin" }, { 2, "Opex ratio (lower is better)" }, { 3, "EBIT margin" }, { 4, "Net margin" } } )
+
