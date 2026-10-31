@@ -1,0 +1,14 @@
+# Normalise line endings for text files
+* text=auto
+
+# The landing page HTML is design source, not the project's main language
+assets/*.html linguist-documentation
+
+# Treat PBIP model files as text
+*.tmdl text
+*.pbip text
+*.pbir text
+*.pbism text
+
+# Binary assets
+*.png binary
