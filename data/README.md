@@ -1,6 +1,6 @@
 # Data
 
-The source data is **not included** in this repository. The report expects eight CSV files (UTF-8, comma-delimited, header row) in one folder:
+The source data was provided by The Future Analytics for the capstone of the course *Master Analytical Thinking & Data Analysis With Power BI*. It is **not included** in this repository. The report expects eight CSV files (UTF-8, comma-delimited, header row) in one folder:
 
 | File | Rows (FY2023) | Columns | Role |
 |---|---|---|---|
