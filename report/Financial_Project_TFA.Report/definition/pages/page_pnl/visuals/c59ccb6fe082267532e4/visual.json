@@ -270,7 +270,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'How Much of Each Revenue Dollar Does each Profit and Loss Lines Take?'"
+                  "Value": "'How Much of Each Revenue Dollar Does each Profit and Loss Line Take?'"
                 }
               }
             },
@@ -322,7 +322,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Each Profit and Lost Lines as % of Revenue'"
+                  "Value": "'Each Profit and Loss Line as % of Revenue'"
                 }
               }
             },

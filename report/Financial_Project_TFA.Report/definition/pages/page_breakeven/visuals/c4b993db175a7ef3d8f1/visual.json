@@ -310,7 +310,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'How Close Did each Month Come to the Break-even Lines?'"
+                  "Value": "'How Close Did each Month Come to Break-even?'"
                 }
               }
             },

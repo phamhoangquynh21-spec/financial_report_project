@@ -299,7 +299,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'Does each Line Earn a Share of Profit that Matches its Share of Revenue?'"
+                  "Value": "'Does each Line Out-earn a Share of Profit that Matches its Share of Revenue?'"
                 }
               }
             },

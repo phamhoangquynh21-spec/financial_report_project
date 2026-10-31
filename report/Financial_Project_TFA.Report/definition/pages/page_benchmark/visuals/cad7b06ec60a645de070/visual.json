@@ -361,7 +361,7 @@
             "text": {
               "expr": {
                 "Literal": {
-                  "Value": "'What does Each Line Increase or Decrease Compare its US Industry Average?'"
+                  "Value": "'How Does each Line Compare with its US Industry Average?'"
                 }
               }
             },
